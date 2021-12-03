@@ -9,25 +9,42 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+
 using Newtonsoft.Json;
 
 using Nethereum.Util;
+using System.Threading;
 
 namespace GannyBot
 {
     public partial class Form1 : Form
     {
-        Bot Bot = new Bot();
-        ClientSocket clientSocket;
-        Form2 formSettings = new Form2();
+        public bool LOGIN = false;
+        //public Database db = new Database();
+        BotManager Bot = new BotManager();
+        public static ClientSocket clientSocket;
+        LoginForm loginForm = new LoginForm();
+
+        System.Threading.Timer timer_Socket;
+
         public Form1()
         {
-            InitializeComponent();
-            ConnectSocket();
-            Web3Initialize();
+            // db.Initialize();
 
-            Bot._form = this;
+            BotManager._form = this;
             Form2._form1 = this;
+            LoginForm._form1 = this;
+
+            InitializeComponent();
+            
+            ConnectSocket();
+
+            if (!LOGIN)
+            {
+                Exit();
+            }
+            
+            Web3Initialize();
 
             comboBox1.SelectedIndex = 0;
             comboBox3.SelectedIndex = 0;
@@ -35,12 +52,74 @@ namespace GannyBot
             comboBox5.SelectedIndex = 0;
 
             groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
-            
+            label40.Text = Bot.web3.GetMainTokenName()+":";
+
+            timer_Socket = new System.Threading.Timer(_ => Timer_Socket(), null, 0, Timeout.Infinite);
+
+            //foreach(Token token in db.GetWalletTokenList())
+            //{
+            //    string[] row = { token.Name, token.Symbol, token.Address };
+
+            //    var listViewItem = new ListViewItem(row);
+            //    listView1.Items.Add(listViewItem);
+            //}
+
+            SetToolTip();
+        }
+
+        void SetToolTip()
+        {
+            ToolTip toolTip1 = new ToolTip();
+
+            // Set up the delays for the ToolTip.
+            toolTip1.AutoPopDelay = 5000;
+            toolTip1.InitialDelay = 1000;
+            toolTip1.ReshowDelay = 500;
+            // Force the ToolTip text to be displayed whether or not the form is active.
+            toolTip1.ShowAlways = true;
+
+            toolTip1.SetToolTip(this.label70, "Deneme");
+        }
+
+        void Timer_Socket()
+        {
+            System.Diagnostics.Debug.WriteLine("Socket Connection :" + clientSocket.IsConnected().ToString());
+            if (!clientSocket.IsConnected())
+            {
+                clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
+                clientSocket.Start();
+            }
+            timer_Socket.Change(5000, Timeout.Infinite);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             clientSocket.Close();
+        }
+
+        void Exit()
+        {
+            Application.Exit();
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
+        }
+
+        void ConnectSocket()
+        {
+            int port = 3131;
+            Console.WriteLine(string.Format("Client Başlatıldı. Port: {0}", port));
+            Console.WriteLine("-----------------------------");
+
+            clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
+
+            if (clientSocket.Start())
+            {
+                loginForm.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Sunucuya bağlanılmıyor");
+                Exit();
+            }
         }
 
         public bool Web3Initialize()
@@ -55,6 +134,7 @@ namespace GannyBot
                 label8.Text = "Connected";
                 label8.ForeColor = Color.Green;
                 label73.Text = Bot.web3.GetChainName();
+                label33.Text = Properties.Settings.Default.wallet_address;
 
                 return true;
             }
@@ -64,28 +144,13 @@ namespace GannyBot
                 label8.Text = "Disconnected";
                 label8.ForeColor = Color.Red;
                 label73.Text = "-";
+                label33.Text = "-";
 
                 return false;
             }
         }
 
-        public void ConnectSocket()
-        {
-            int port = 3131;
-            Console.WriteLine(string.Format("Client Başlatıldı. Port: {0}", port));
-            Console.WriteLine("-----------------------------");
-
-            clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port));
-
-            if (clientSocket.Start())
-            {
-                clientSocket.SendData("{'type':'login', 'email':'sa', 'password':'as123'}");
-                dynamic receiveData = clientSocket.ReceiveData();
-                System.Console.WriteLine(receiveData.ToString());
-            }
-        }
-
-        private void clearMarketTransactionInformation()
+        void clearMarketTransactionInformation()
         {
             linkLabel1.Text = "";
             linkLabel1.Links.Clear();
@@ -99,7 +164,7 @@ namespace GannyBot
             label67.Text = "";
         }
 
-        private void listView1_SelectedIndexChanged(object sender, EventArgs e)
+        void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (this.listView1.SelectedItems.Count == 0)
                 return;
@@ -115,12 +180,16 @@ namespace GannyBot
             //}
         }
 
-        async private void button9_Click(object sender, EventArgs e)
+        async void button9_Click(object sender, EventArgs e)
         {
             decimal account_balance = await Bot.web3.GetEthBalance(Bot.WALLET_ADDRESS);
             label34.Text = account_balance.ToString() + " BNB";
         }
 
+        public void ShowMainTokenPrice(BigDecimal price)
+        {
+            label46.Text = price.ToString() + " $";
+        }
         /**********************************************************/
         /************************* WALLET *************************/
         /**********************************************************/
@@ -168,6 +237,8 @@ namespace GannyBot
 
             Token token = response.Token;
 
+            //db.AddWalletToken(token);
+
             string[] row = { token.Name, token.Symbol, token.Address };
 
             var listViewItem = new ListViewItem(row);
@@ -191,36 +262,41 @@ namespace GannyBot
         /**********************************************************/
         /************************* MARKET *************************/
         /**********************************************************/
-        private string GetTokenAddress_Market()
+        public string Market_GetMarketType()
+        {
+            return comboBox5.SelectedItem.ToString();
+        }
+
+        private string Market_GetTokenAddress()
         {
             return textBox2.Text;
         }
 
-        private decimal GetInputValue_Market()
+        public decimal Market_GetInputValue()
         {
             return Convert.ToDecimal(textBox3.Text.Replace(".", ","));
         }
 
-        private decimal GetSlippage_Market()
+        public decimal Market_GetSlippage()
         {
             return Convert.ToDecimal(textBox4.Text.Replace(".", ","));
         }
 
-        private int GetGasPrice_Market()
+        private int Market_GetGasPrice()
         {
             int gasPrice = 5;
             switch (comboBox1.SelectedItem.ToString())
             {
-                case "Standard(5 GWEI)":
+                case "Standard (5 GWEI)":
                     gasPrice = 5;
                     break;
-                case "Fast(6 GWEI)":
+                case "Fast (6 GWEI)":
                     gasPrice = 6;
                     break;
-                case "Instant(7 GWEI)":
+                case "Instant (7 GWEI)":
                     gasPrice = 7;
                     break;
-                case "Rapid(10 GWEI)":
+                case "Rapid (10 GWEI)":
                     gasPrice = 10;
                     break;
                 case "TestNet (15 GWEI)":
@@ -230,104 +306,16 @@ namespace GannyBot
             return gasPrice;
         }
 
-        private async void checkTransactionReceipt_Market(dynamic transactionReceipt)
-        {
-            if (transactionReceipt.Error)
-            {
-                label56.Text = "Error";
-                linkLabel1.Text = transactionReceipt.Message;
-            }
-            else
-            {
-                dynamic transactionDetails = await Bot.web3.GetTransactionDetails(transactionReceipt.TransactionHash);
-                setTransactionInformation_Market(transactionDetails);
-            }
-        }
-
-        private void setTransactionInformation_Market(dynamic transactionDetails)
-        {
-            string str = JsonConvert.SerializeObject(transactionDetails);
-            System.Diagnostics.Debug.WriteLine(str);
-
-            linkLabel1.Text = transactionDetails.Hash;
-            string links = Bot.web3.GetExplorerURL() + "tx/" + transactionDetails.Hash;
-            linkLabel1.Links.Add(0, links.Length, links);
-            label56.Text = transactionDetails.Status;
-            label57.Text = transactionDetails.From;
-            label62.Text = transactionDetails.To;
-            label63.Text = transactionDetails.Value + " BNB";
-            label64.Text = transactionDetails.TotalFee + " BNB";
-            label65.Text = transactionDetails.GasLimit;
-            label66.Text = transactionDetails.GasUsed;
-            label67.Text = transactionDetails.GasPrice + " Gwei";
-        }
-
-        // BUY BUTTON
-        private async void button5_Click(object sender, EventArgs e)
-        {
-            button5.Enabled = false;
-            clearMarketTransactionInformation();
-            dynamic transactionReceipt = await Bot.web3.MakeTradeInput(
-                Bot.WALLET_ADDRESS,
-                Bot.web3.GetWETHAddress(),
-                GetTokenAddress_Market(),
-                GetInputValue_Market(),
-                GetSlippage_Market(),
-                GetGasPrice_Market()
-                );
-
-            checkTransactionReceipt_Market(transactionReceipt);
-            button5.Enabled = true;
-        }
-
-        // SELL BUTTON
-        private async void button14_Click(object sender, EventArgs e)
-        {
-            button14.Enabled = false;
-            clearMarketTransactionInformation();
-
-            dynamic transactionReceipt = await Bot.web3.MakeTradeInput(
-                Bot.WALLET_ADDRESS,
-                GetTokenAddress_Market(),
-                Bot.web3.GetWETHAddress(),
-                GetInputValue_Market(),
-                GetSlippage_Market(),
-                GetGasPrice_Market()
-                );
-
-            checkTransactionReceipt_Market(transactionReceipt);
-            button14.Enabled = true;
-        }
-
-        // APPROVE BUTTON
-        private async void button11_Click(object sender, EventArgs e)
-        {
-            button11.Enabled = false;
-            clearMarketTransactionInformation();
-
-            dynamic transactionReceipt = await Bot.web3.Approve(
-                GetTokenAddress_Market(),
-                GetInputValue_Market()
-                );
-
-            checkTransactionReceipt_Market(transactionReceipt);
-            button11.Enabled = true;
-        }
-
-        /**********************************************************/
-        /************************* PRESALE ************************/
-        /**********************************************************/
-
         private void comboBox5_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if(comboBox5.SelectedItem.ToString() == "Buy")
+            if (comboBox5.SelectedItem.ToString() == "Buy")
             {
                 button5.Visible = true;
                 button11.Visible = false;
                 button14.Visible = false;
                 label9.Text = "BNB Value:";
             }
-            else if(comboBox5.SelectedItem.ToString() == "Sell")
+            else if (comboBox5.SelectedItem.ToString() == "Sell")
             {
                 button5.Visible = false;
                 button11.Visible = true;
@@ -336,27 +324,111 @@ namespace GannyBot
             }
         }
 
-        private async void button4_Click(object sender, EventArgs e)
+        void textBox2_TextChanged(object sender, EventArgs e)
         {
-            string tokenAddress = textBox2.Text;
-
-            if(!await Bot.web3.CheckTokenAddress(tokenAddress))
+            if(textBox2.Text.Length > 30)
             {
-                MessageBox.Show("Bu kontrat adresi bir tokene ait değildir!");
-                return;
+                Bot.Market_AddTokenInfo(textBox2.Text);
             }
-            
-            Token token = await Bot.GetTokenInfo(Bot.WALLET_ADDRESS, tokenAddress);
+        }
+
+        public void Market_SetMinimumReceived(BigDecimal amount)
+        {
+            textBox12.Text = amount.ToString();
+        }
+
+        public void Market_ShowTokenInfo(Token token)
+        {
             label13.Text = token.Name;
             label14.Text = token.Symbol;
             label16.Text = token.Decimals.ToString();
+            label18.Text = token.Price.ToString();
             label70.Text = token.Balance.ToString();
             label71.Text = token.Approved.ToString();
+        }
 
-            // tokens.Add(token);
+        private void Market_ShowTransactionInformation(dynamic response)
+        {
+            if (response.Error)
+            {
+                label56.Text = "Error";
+                linkLabel1.Text = response.Message;
+            }
+            else
+            {
+                dynamic transactionDetails = response.TransactionDetails;
+
+                linkLabel1.Text = transactionDetails.Hash;
+                string links = Bot.web3.GetExplorerURL() + "tx/" + transactionDetails.Hash;
+                linkLabel1.Links.Add(0, links.Length, links);
+                label56.Text = transactionDetails.Status;
+                label57.Text = transactionDetails.From;
+                label62.Text = transactionDetails.To;
+                label63.Text = transactionDetails.Value + " BNB";
+                label64.Text = transactionDetails.TotalFee + " BNB";
+                label65.Text = transactionDetails.GasLimit;
+                label66.Text = transactionDetails.GasUsed;
+                label67.Text = transactionDetails.GasPrice + " Gwei";
+            }
             
         }
 
+        // BUY BUTTON
+        private async void button5_Click(object sender, EventArgs e)
+        {
+            button5.Enabled = false;
+            clearMarketTransactionInformation();
+
+            dynamic response = await Bot.BuyToken(
+                Market_GetTokenAddress(),
+                Market_GetInputValue(),
+                Market_GetSlippage(),
+                Market_GetGasPrice()
+                );
+
+            Market_ShowTransactionInformation(response);
+            button5.Enabled = true;
+        }
+
+        // SELL BUTTON
+        private async void button14_Click(object sender, EventArgs e)
+        {
+            button11.Enabled = false;
+            button14.Enabled = false;
+            clearMarketTransactionInformation();
+
+            dynamic response = await Bot.SellToken(
+                Market_GetTokenAddress(),
+                Market_GetInputValue(),
+                Market_GetSlippage(),
+                Market_GetGasPrice()
+                );
+
+            Market_ShowTransactionInformation(response);
+            button11.Enabled = true;
+            button14.Enabled = true;
+        }
+
+        // APPROVE BUTTON
+        private async void button11_Click(object sender, EventArgs e)
+        {
+            button11.Enabled = false;
+            button14.Enabled = false;
+            clearMarketTransactionInformation();
+
+            dynamic response = await Bot.ApproveToken(
+                Market_GetTokenAddress(),
+                Market_GetInputValue() 
+                );
+
+            Market_ShowTransactionInformation(response);
+            button11.Enabled = true;
+            button14.Enabled = true;
+        }
+
+        /**********************************************************/
+        /************************* PRESALE ************************/
+        /**********************************************************/
         private void button6_Click(object sender, EventArgs e)
         {
         }
@@ -369,6 +441,24 @@ namespace GannyBot
         /**********************************************************/
         /************************** LIMIT *************************/
         /**********************************************************/
+        void textBox11_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox11.Text.Length > 30)
+            {
+                Bot.Limit_AddTokenInfo(textBox11.Text);
+            }
+        }
+
+        public void Limit_ShowTokenInfo(Token token)
+        {
+            label86.Text = token.Name;
+            label84.Text = token.Symbol;
+            label82.Text = token.Decimals.ToString();
+            label80.Text = token.Price.ToString();
+            label77.Text = token.Balance.ToString();
+            label76.Text = token.Approved.ToString();
+        }
+
         private string GetTokenAddress_Limit()
         {
             return textBox11.Text;
@@ -399,16 +489,16 @@ namespace GannyBot
             int gasPrice = 5;
             switch (comboBox4.SelectedItem.ToString())
             {
-                case "Standard(5 GWEI)":
+                case "Standard (5 GWEI)":
                     gasPrice = 5;
                     break;
-                case "Fast(6 GWEI)":
+                case "Fast (6 GWEI)":
                     gasPrice = 6;
                     break;
-                case "Instant(7 GWEI)":
+                case "Instant (7 GWEI)":
                     gasPrice = 7;
                     break;
-                case "Rapid(10 GWEI)":
+                case "Rapid (10 GWEI)":
                     gasPrice = 10;
                     break;
                 case "TestNet (15 GWEI)":
@@ -416,6 +506,18 @@ namespace GannyBot
                     break;
             }
             return gasPrice;
+        }
+
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox3.SelectedItem.ToString() == "Buy")
+            {
+                label75.Text = "BNB Amount:";
+            }
+            else if (comboBox3.SelectedItem.ToString() == "Sell")
+            {
+                label75.Text = "Token Amount:";
+            }
         }
 
         private void AddItemInLimitView(string id, string symbol, string address, string price, string limit, string type, string amount, string time)
@@ -457,6 +559,17 @@ namespace GannyBot
                 {
                     itemRow.SubItems[subIndex].Text = data;
                     break;
+                }
+            }
+        }
+
+        public void ListView2_UpdateTokenColor(int ID, Color background)
+        {
+            foreach (ListViewItem itemRow in listView2.Items)
+            {
+                if (itemRow.SubItems[0].Text == ID.ToString())
+                {
+                    itemRow.BackColor = background;
                 }
             }
         }
@@ -552,6 +665,7 @@ namespace GannyBot
         /**********************************************************/
         private void button20_Click(object sender, EventArgs e)
         {
+            Form2 formSettings = new Form2();
             formSettings.Show();
         }
 
@@ -565,19 +679,24 @@ namespace GannyBot
 
         }
 
-        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        private void button3_Click(object sender, EventArgs e)
         {
-            if (comboBox3.SelectedItem.ToString() == "Buy")
-            {
-                label75.Text = "Amount (BNB):";
-            }
-            else if (comboBox3.SelectedItem.ToString() == "Sell")
-            {
-                label9.Text = "Token Value:";
-                label75.Text = "Amount (%):";
-            }
+            //System.Diagnostics.Debug.WriteLine("Socket Connection: " + clientSocket.IsConnected().ToString());
+            
         }
 
-        
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        public bool CheckSelectedMainTab(string tabName)
+        {
+            if(tabControl1.SelectedTab == tabControl1.TabPages[tabName])
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

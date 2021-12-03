@@ -37,6 +37,7 @@ namespace GannyBot
         string BSC_API_KEY = "ZVIBVJRNZ85H69RATX35JAHGFGA8YZ3YGP";
 
         chain selectedChain;
+        Nethereum.Contracts.Contract routerContract;
 
         public bool Start()
         {
@@ -48,9 +49,11 @@ namespace GannyBot
             account = new Account(WALLET_PRIVATE_KEY, GetChainID());
             web3 = new Web3(account, GetChainRPC());
 
-            account.NonceService = new InMemoryNonceService(account.Address, web3.Client);
             web3.TransactionManager.UseLegacyAsDefault = true;
-            
+
+            account.NonceService = new InMemoryNonceService(account.Address, web3.Client);
+            routerContract = GetRouterContract();
+
             return true;
         }
 
@@ -95,6 +98,15 @@ namespace GannyBot
             else if (selectedChain == chain.binance_smart_chain_test) url = "https://testnet.bscscan.com/";
 
             return url;
+        }
+
+        public string GetMainTokenName()
+        {
+            string name = "";
+            if (selectedChain == chain.binance_smart_chain) name = "BNB";
+            else if (selectedChain == chain.binance_smart_chain_test) name = "BNB";
+
+            return name;
         }
 
         public async Task<HexBigInteger> GetBlockNumber()
@@ -150,6 +162,7 @@ namespace GannyBot
             try
             {
                 string baytCode = await web3.Eth.GetCode.SendRequestAsync(address);
+                //System.Diagnostics.Debug.WriteLine(baytCode);
                 if (baytCode == "0x") return false;
             }
             catch (Exception ex)
@@ -240,14 +253,21 @@ namespace GannyBot
         /**********************************************************/
         /************************* APPROVE ************************/
         /**********************************************************/
-        public async Task<bool> CheckApprove(string walletAddress, string tokenAddress, string tokenABI)
+        public async Task<BigDecimal> CheckApprove(string walletAddress, string tokenAddress, string tokenABI)
         {
             Nethereum.Contracts.Contract contract = web3.Eth.GetContract(tokenABI, tokenAddress);
             Nethereum.Contracts.Function allowanceFunction = contract.GetFunction("allowance");
-            System.Numerics.BigInteger allowance = await allowanceFunction.CallAsync<System.Numerics.BigInteger>(walletAddress, GetRouterAddress());
 
-            if (allowance == 0) return false;
-            else return true;
+            try
+            {
+                System.Numerics.BigInteger allowance = await allowanceFunction.CallAsync<System.Numerics.BigInteger>(walletAddress, GetRouterAddress());
+                return Web3.Convert.FromWeiToBigDecimal(allowance);
+            }
+            catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+                return 0;
+            }
         }
 
         public async Task<dynamic> Approve(string tokenAddress, BigDecimal quantity)
@@ -265,14 +285,48 @@ namespace GannyBot
         /**********************************************************/
         /************************* MARKET *************************/
         /**********************************************************/
-        dynamic getAmountInFunction()
+        #region MARKET 
+        Nethereum.Contracts.Function getAmountInFunction()
         {
-            return GetRouterContract().GetFunction("getAmountsIn");
+            return routerContract.GetFunction("getAmountsIn");
         }
 
-        dynamic getAmountOutFunction()
+        Nethereum.Contracts.Function getAmountOutFunction()
         {
-            return GetRouterContract().GetFunction("getAmountsOut");
+            return routerContract.GetFunction("getAmountsOut");
+        }
+
+        async Task<BigDecimal> GetWeiToEth(string tokenAddress, System.Numerics.BigInteger weiQuantity)
+        {
+            BigDecimal ethQuantity;
+
+            int decimals = await GetTokenDecimals(tokenAddress, await GetTokenAbi(tokenAddress));
+            if (decimals != 18)
+            {
+                ethQuantity = (BigDecimal) weiQuantity / Math.Pow(10, decimals);
+            }
+            else
+            {
+                ethQuantity = Web3.Convert.FromWei(weiQuantity);
+            }
+            return ethQuantity;
+        }
+
+        async Task<System.Numerics.BigInteger> GetEthToWei(string tokenAddress, BigDecimal ethQuantity)
+        {
+            System.Numerics.BigInteger weiQuantity;
+
+            int decimals = await GetTokenDecimals(tokenAddress, await GetTokenAbi(tokenAddress));
+            if (decimals != 18)
+            {
+                weiQuantity = Web3.Convert.ToWei(ethQuantity) / (System.Numerics.BigInteger)Math.Pow(10, 18 - decimals);
+            }
+            else
+            {
+                weiQuantity = Web3.Convert.ToWei(ethQuantity);
+            }
+
+            return weiQuantity;
         }
 
         public async Task<BigDecimal> GetEthTokenInputPrice(string tokenAddress, BigDecimal quantity)
@@ -286,14 +340,15 @@ namespace GannyBot
                             }
                 );
 
-            return Web3.Convert.FromWei(price[1]);
+            return await GetWeiToEth(tokenAddress, price[1]);
         }
 
         public async Task<BigDecimal> GetTokenEthInputPrice(string tokenAddress, BigDecimal quantity)
         {
             dynamic amountOutFunction = getAmountOutFunction();
             List<System.Numerics.BigInteger> price = await amountOutFunction.CallAsync<List<System.Numerics.BigInteger>>
-                (Web3.Convert.ToWei(quantity), new List<string>
+                (await GetEthToWei(tokenAddress, quantity), 
+                    new List<string>
                             {
                                 tokenAddress,
                                 GetWETHAddress()
@@ -307,7 +362,8 @@ namespace GannyBot
         {
             dynamic amountOutFunction = getAmountOutFunction();
             List<System.Numerics.BigInteger> price = await amountOutFunction.CallAsync<List<System.Numerics.BigInteger>>
-                (Web3.Convert.ToWei(quantity), new List<string>
+                (await GetEthToWei(tokenAddress1, quantity), 
+                    new List<string>
                             {
                                 tokenAddress1,
                                 GetWETHAddress(),
@@ -315,14 +371,14 @@ namespace GannyBot
                             }
                 );
 
-            return Web3.Convert.FromWei(price[1]);
+            return await GetWeiToEth(tokenAddress2, price[1]);
         }
 
         public async Task<BigDecimal> GetEthTokenOutputPrice(string tokenAddress, BigDecimal quantity)
         {
             dynamic amountInFunction = getAmountInFunction();
             List<System.Numerics.BigInteger> price = await amountInFunction.CallAsync<List<System.Numerics.BigInteger>>
-                (Web3.Convert.ToWei(quantity), new List<string>
+                (await GetEthToWei(tokenAddress, quantity), new List<string>
                             {
                                 GetWETHAddress(),
                                 tokenAddress
@@ -343,14 +399,14 @@ namespace GannyBot
                             }
                 );
 
-            return Web3.Convert.FromWei(price[0]);
+            return await GetWeiToEth(tokenAddress, price[0]);
         }
 
         public async Task<BigDecimal> GetTokenTokenOutputPrice(string tokenAddress1, string tokenAddress2, BigDecimal quantity)
         {
             dynamic amountInFunction = getAmountInFunction();
             List<System.Numerics.BigInteger> price = await amountInFunction.CallAsync<List<System.Numerics.BigInteger>>
-                (Web3.Convert.ToWei(quantity), new List<string>
+                (await GetEthToWei(tokenAddress2, quantity), new List<string>
                             {
                                 tokenAddress1,
                                 GetWETHAddress(),
@@ -358,33 +414,65 @@ namespace GannyBot
                             }
                 );
 
-            return Web3.Convert.FromWei(price[0]);
+            return await GetWeiToEth(tokenAddress1, price[0]);
         }
 
+        #endregion
         /**********************************************************/
         /************************* TRADE **************************/
         /**********************************************************/
+        async Task<dynamic> GetEstimated(dynamic handler, dynamic transfer)
+        {
+            dynamic response = new ExpandoObject();
+
+            try
+            {
+                dynamic estimate = await handler.EstimateGasAsync(GetRouterAddress(), transfer);
+                string str = estimate.ToString();
+
+                response.Error = false;
+                response.Gas = estimate.Value;
+            }
+            catch (Exception ex)
+            {
+                response.Error = true;
+                response.Message = ex.Message;
+            }
+            
+            return response;
+        }
+
         public async Task<dynamic> MakeTradeInput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
-            if (inputTokenAddress == GetWETHAddress())
+            try
             {
-                return await EthToTokenSwapInput(walletAddress, outputTokenAddress, quantity, slippage, gasPrice);
-            }
-            else
-            {
-                string inputTokenABI = await GetTokenAbi(inputTokenAddress);
-                decimal balance = await GetTokenBalance(walletAddress, inputTokenAddress, inputTokenABI);
-
-                // if (balance < quantity)  hata
-
-                if (outputTokenAddress == GetWETHAddress())
+                if (inputTokenAddress == GetWETHAddress())
                 {
-                    return await TokenToEthSwapInput(walletAddress, inputTokenAddress, quantity, slippage, gasPrice);
+                    return await EthToTokenSwapInput(walletAddress, outputTokenAddress, quantity, slippage, gasPrice);
                 }
                 else
                 {
-                    return await TokenToTokenSwapInput(walletAddress, inputTokenAddress, outputTokenAddress, quantity, slippage, gasPrice);
+                    string inputTokenABI = await GetTokenAbi(inputTokenAddress);
+                    decimal balance = await GetTokenBalance(walletAddress, inputTokenAddress, inputTokenABI);
+
+                    // if (balance < quantity)  hata
+
+                    if (outputTokenAddress == GetWETHAddress())
+                    {
+                        return await TokenToEthSwapInput(walletAddress, inputTokenAddress, quantity, slippage, gasPrice);
+                    }
+                    else
+                    {
+                        return await TokenToTokenSwapInput(walletAddress, inputTokenAddress, outputTokenAddress, quantity, slippage, gasPrice);
+                    }
                 }
+            }
+            catch(Exception ex)
+            {
+                dynamic responseMessage = new ExpandoObject();
+                responseMessage.Error = true;
+                responseMessage.Message = ex.Message;
+                return responseMessage;
             }
         }
 
@@ -415,11 +503,12 @@ namespace GannyBot
         async Task<dynamic> EthToTokenSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal amountOutMin = ((100 - slippage) / 100) * await GetEthTokenInputPrice(tokenAddress, quantity);
-            var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactETHForTokensFunction>();
-            var swapDTO = new SwapExactETHForTokensFunction()
+
+            var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactETHForTokensSupportingFeeOnTransferTokensFunction>();
+            var swapDTO = new SwapExactETHForTokensSupportingFeeOnTransferTokensFunction()
             {
                 AmountToSend = Web3.Convert.ToWei(quantity, UnitConversion.EthUnit.Ether),
-                AmountOutMin = Web3.Convert.ToWei(amountOutMin, UnitConversion.EthUnit.Ether),
+                AmountOutMin = await GetEthToWei(tokenAddress, amountOutMin),
                 Path = new List<string>
                 {
                     GetWETHAddress(),
@@ -427,9 +516,14 @@ namespace GannyBot
                 },
                 To = walletAddress,
                 Deadline = GetTxDeadline(),
-                Gas = GetTxGas(),
-                GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
+                GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei),
+                Nonce = await GetTxNonce()
             };
+
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+
+            if (estimatedGas.Error) return estimatedGas;
+            swapDTO.Gas = estimatedGas.Gas * 2;
 
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
@@ -437,10 +531,11 @@ namespace GannyBot
         async Task<dynamic> TokenToEthSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal amountOutMin = ((100 - slippage) / 100) * await GetTokenEthInputPrice(tokenAddress, quantity);
-            var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactTokensForETHFunction>();
-            var swapDTO = new SwapExactTokensForETHFunction()
+            
+            var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactTokensForETHSupportingFeeOnTransferTokensFunction>();
+            var swapDTO = new SwapExactTokensForETHSupportingFeeOnTransferTokensFunction()
             {
-                AmountIn = Web3.Convert.ToWei(quantity, UnitConversion.EthUnit.Ether),
+                AmountIn = await GetEthToWei(tokenAddress, quantity),
                 AmountOutMin = Web3.Convert.ToWei(amountOutMin, UnitConversion.EthUnit.Ether),
                 Path = new List<string>
                 {
@@ -449,9 +544,17 @@ namespace GannyBot
                 },
                 To = walletAddress,
                 Deadline = GetTxDeadline(),
-                Gas = GetTxGas(),
-                GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
+                GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei),
+                Nonce = await GetTxNonce()
             };
+            
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+
+            string json = JsonConvert.SerializeObject(estimatedGas);
+            System.Diagnostics.Debug.WriteLine(json);
+
+            if (estimatedGas.Error) return estimatedGas;
+            swapDTO.Gas = estimatedGas.Gas * 2;
 
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
@@ -477,6 +580,9 @@ namespace GannyBot
                 GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
             };
 
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+            if (estimatedGas.Error) return estimatedGas;
+
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
 
@@ -499,6 +605,9 @@ namespace GannyBot
                 GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
             };
 
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+            if (estimatedGas.Error) return estimatedGas;
+
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
 
@@ -520,6 +629,9 @@ namespace GannyBot
                 Gas = GetTxGas(),
                 GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
             };
+
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+            if (estimatedGas.Error) return estimatedGas;
 
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
@@ -545,23 +657,31 @@ namespace GannyBot
                 GasPrice = Web3.Convert.ToWei(gasPrice, UnitConversion.EthUnit.Gwei)
             };
 
+            dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
+            if (estimatedGas.Error) return estimatedGas;
+
             return await BuildAndSendTx(GetRouterAddress(), swapHandler, swapDTO);
         }
 
         /**********************************************************/
         /************************ TX UTILS ************************/
         /**********************************************************/
-        public System.Numerics.BigInteger GetTxDeadline()
+        System.Numerics.BigInteger GetTxDeadline()
         {
             return ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() + 1200;
         }
 
-        public System.Numerics.BigInteger GetTxGas()
+        System.Numerics.BigInteger GetTxGas()
         {
             return 1000000;
         }
 
-        public async Task<dynamic> BuildAndSendTx(string contractAddress, dynamic swapHandler, dynamic swapDTO)
+        async Task<dynamic>GetTxNonce()
+        {
+            return await web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(account.Address, BlockParameter.CreatePending());
+        }
+
+        async Task<dynamic> BuildAndSendTx(string contractAddress, dynamic swapHandler, dynamic swapDTO)
         {
             dynamic responseMessage = new ExpandoObject();
             try
@@ -610,6 +730,5 @@ namespace GannyBot
 
             return transactionDetails;
         }
-
     }
 }

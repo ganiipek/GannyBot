@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Dynamic;
+using System.Drawing;
 
 using Newtonsoft.Json;
 
@@ -13,65 +14,7 @@ using Nethereum.Util;
 
 namespace GannyBot
 {
-    public class Token
-    {
-        public string Name;
-        public string Symbol;
-        public string Address;
-        public int Decimals;
-        public decimal Balance;
-        public string Abi;
-        public bool Approved;
-        public dynamic Contract;
-        public BigDecimal Price = 0;
-    }
-
-    public class LimitOrder
-    {
-        public int ID { get; set; }
-        public string Address;
-        public string Symbol;
-        public string Type;
-        public BigDecimal Price;
-        public BigDecimal Quantity;
-        public decimal Slippage;
-        public int GasPrice;
-        public DateTime Date;
-        public bool Process;
-        public int ErrorCount;
-    }
-
-    public class LimitOrderList
-    {
-        public readonly List<LimitOrder> orders;
-
-        public LimitOrderList()
-        {
-            orders = new List<LimitOrder>();
-        }
-
-        public void Add(LimitOrder limitOrder)
-        {
-            limitOrder.ID = orders.Count > 0 ? orders.Max(x => x.ID) + 1 : 1;
-            limitOrder.Date = DateTime.Now;
-            limitOrder.Process = false;
-            limitOrder.ErrorCount = 5;
-            orders.Add(limitOrder);
-        }
-
-        public void Remove(LimitOrder limitOrder)
-        {
-            orders.Remove(limitOrder);
-            // orders.ForEach((x) => { if (x.ID > limitOrder.ID) x.ID = x.ID - 1; });
-        }
-
-        public int Count()
-        {
-            return orders.Count;
-        }
-    }
-
-    internal class Bot
+    internal class BotManager
     {
         public static Form1 _form;
         public string WALLET_ADDRESS = Properties.Settings.Default.wallet_address;
@@ -80,10 +23,18 @@ namespace GannyBot
         public BlockChain web3 = new BlockChain();
         List<Token> walletTokens = new List<Token>();
         List<Token> limitTokens = new List<Token>();
-        LimitOrderList limitOrders = new LimitOrderList();
+        Trade.LimitOrderList limitOrders = new Trade.LimitOrderList();
 
+        BigDecimal priceETH = 0;
+
+        Token marketTokenInput = new Token();
+        Token limitTokenInput = new Token();
+
+        System.Threading.Timer timer_ETHPrice;
         System.Threading.Timer timer1;
         System.Threading.Timer timer_wallet;
+        System.Threading.Timer timer_MarketTokenInfo;
+        System.Threading.Timer timer_LimitTokenInfo;
 
         string wallet_LastSelectedTokenAddress = null;
         int maxLimitOrderCount = 20;
@@ -91,16 +42,24 @@ namespace GannyBot
 
         public bool Initialize()
         {
-            timer1 = new System.Threading.Timer(_ => timer1_Tick(), null, 1000, Timeout.Infinite);
-            timer_wallet = new System.Threading.Timer(_ => timer_wallet_Tick(), null, 1000, Timeout.Infinite);
-
-            DeleteAllLimitOrder();
-
             web3.WALLET_ADDRESS = Properties.Settings.Default.wallet_address;
             web3.WALLET_PRIVATE_KEY = Properties.Settings.Default.wallet_private_key;
 
-            if (web3.Start()) return true;
-            else return false;
+            if (web3.Start())
+            {
+                DeleteAllLimitOrder();
+
+                timer_ETHPrice = new System.Threading.Timer(_ => Timer_ETHPrice(), null, 0, Timeout.Infinite);
+                timer1 = new System.Threading.Timer(_ => timer1_Tick(), null, 1000, Timeout.Infinite);
+                timer_wallet = new System.Threading.Timer(_ => timer_wallet_Tick(), null, 2500, Timeout.Infinite);
+                timer_MarketTokenInfo = new System.Threading.Timer(_ => Timer_MarketTokenInfo(), null, 2500, Timeout.Infinite);
+                timer_LimitTokenInfo = new System.Threading.Timer(_ => Timer_LimitTokenInfo(), null, 2500, Timeout.Infinite);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         async Task<BigDecimal> GetWETHPrice_Router()
@@ -142,6 +101,141 @@ namespace GannyBot
             return token;
         }
 
+        async void Timer_ETHPrice()
+        {
+            priceETH = await GetWETHPrice_Router();
+            priceETH = priceETH.RoundAwayFromZero(2);
+
+            _form.ShowMainTokenPrice(priceETH);
+
+            timer_ETHPrice.Change(2500, Timeout.Infinite);
+        }
+
+        /**********************************************************/
+        /************************ MARKET **************************/
+        /**********************************************************/
+        async public void Market_AddTokenInfo(string tokenAddress)
+        {
+            if(marketTokenInput.Address != tokenAddress)
+            {
+                if(await web3.CheckTokenAddress(tokenAddress))
+                { 
+                    marketTokenInput = await GetTokenInfo(WALLET_ADDRESS, tokenAddress);
+                    _form.Market_ShowTokenInfo(marketTokenInput);
+                }
+            }
+        }
+
+        async void Timer_MarketTokenInfo()
+        {
+            if (marketTokenInput.Address != null && _form.CheckSelectedMainTab("mainTab_market"))
+            {
+                BigDecimal tokenPrice = priceETH / await web3.GetEthTokenInputPrice(marketTokenInput.Address, 1);
+                marketTokenInput.Price = tokenPrice.RoundAwayFromZero(10);
+                marketTokenInput.Balance = await web3.GetTokenBalance(WALLET_ADDRESS, marketTokenInput.Address, await web3.GetTokenAbi(marketTokenInput.Address));
+                _form.Market_ShowTokenInfo(marketTokenInput);
+
+                string type = _form.Market_GetMarketType();
+                decimal amount = _form.Market_GetInputValue();
+                decimal slippage = _form.Market_GetSlippage();
+
+                if (amount != 0)
+                {
+                    if (type == "Buy")
+                    {
+                        try
+                        {
+                            BigDecimal minimumReceived = await GetEthToTokenMinimumReceived(marketTokenInput.Address, tokenPrice, (BigDecimal)amount, slippage);
+                            _form.Market_SetMinimumReceived(minimumReceived.RoundAwayFromZero(5));
+                        }
+                        catch { }
+                    }
+                    else if (type == "Sell")
+                    {
+                        try
+                        {
+                            BigDecimal minimumReceived = await GetTokenToEthMinimumReceived(marketTokenInput.Address, tokenPrice, (BigDecimal)amount, slippage);
+                            _form.Market_SetMinimumReceived(minimumReceived.RoundAwayFromZero(5));
+                        }
+                        catch { }
+                    }
+                }
+            }
+            //Thread.Sleep(2500);
+            timer_MarketTokenInfo.Change(2500, Timeout.Infinite);
+        }
+
+        /**********************************************************/
+        /************************ TRADE ***************************/
+        /**********************************************************/
+        public async Task<BigDecimal> GetEthToTokenMinimumReceived(string tokenAddress, BigDecimal price, BigDecimal quantity, decimal slippage)
+        {
+            BigDecimal amountOutMin = ((100 - slippage) / 100) * await web3.GetEthTokenInputPrice(tokenAddress, quantity);
+            return amountOutMin;
+        }
+
+        public async Task<BigDecimal> GetTokenToEthMinimumReceived(string tokenAddress, BigDecimal price, BigDecimal quantity, decimal slippage)
+        {
+            BigDecimal amountOutMin = ((100 - slippage) / 100) * await web3.GetTokenEthInputPrice(tokenAddress, quantity);
+            return amountOutMin;
+        }
+
+        async Task<dynamic> CheckTransactionStatus(dynamic transactionReceipt)
+        {
+            dynamic response = new ExpandoObject();
+
+            if (transactionReceipt.Error)
+            {
+                response.Error = true;
+                response.Message = transactionReceipt.Message;
+            }
+            else
+            {
+                dynamic transactionDetails = await web3.GetTransactionDetails(transactionReceipt.TransactionHash);
+                response.Error = false;
+                response.TransactionDetails = transactionDetails;
+            }
+            return response;
+        }
+
+        async public Task<dynamic> BuyToken(string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        {
+            dynamic transactionReceipt = await web3.MakeTradeInput(
+                web3.WALLET_ADDRESS,
+                web3.GetWETHAddress(),
+                tokenAddress,
+                quantity,
+                slippage,
+                gasPrice
+            );
+
+            return await CheckTransactionStatus(transactionReceipt);
+        }
+
+        async public Task<dynamic> SellToken(string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        {
+            dynamic transactionReceipt = await web3.MakeTradeInput(
+                web3.WALLET_ADDRESS,
+                tokenAddress,
+                web3.GetWETHAddress(),
+                quantity,
+                slippage,
+                gasPrice
+                );
+
+            return await CheckTransactionStatus(transactionReceipt);
+        }
+
+        async public Task<dynamic> ApproveToken(string tokenAddress, BigDecimal quantity)
+        {
+            dynamic transactionReceipt = await web3.Approve(
+                            tokenAddress,
+                            quantity
+                        );
+
+            return await CheckTransactionStatus(transactionReceipt);
+        }
+
         /**********************************************************/
         /************************ WALLET **************************/
         /**********************************************************/
@@ -176,12 +270,10 @@ namespace GannyBot
             }
         }
 
-        async private void timer_wallet_Tick()
+        async void timer_wallet_Tick()
         {
-            if (walletTokens.Count > 0)
+            if (walletTokens.Count > 0 && _form.CheckSelectedMainTab("mainTab_wallet"))
             {
-                BigDecimal priceETH = await GetWETHPrice_Router();
-
                 string address = _form.wallet_ListViewSelectedItem();
 
                 if (address != null || wallet_LastSelectedTokenAddress != null)
@@ -194,11 +286,6 @@ namespace GannyBot
                         if (token.Address == address)
                         {
                             BigDecimal tokenPrice = priceETH / await web3.GetEthTokenInputPrice(token.Address, 1);
-
-                            if (token.Decimals != 18)
-                            {
-                                tokenPrice /= Math.Pow(10, 18 - token.Decimals);
-                            }
                             
                             token.Price = tokenPrice.RoundAwayFromZero(10);
                             _form.wallet_ShowTokenInfo(token);
@@ -216,6 +303,45 @@ namespace GannyBot
         /************************* LIMIT **************************/
         /**********************************************************/
         #region Limit
+        async public void Limit_AddTokenInfo(string tokenAddress)
+        {
+            if (limitTokenInput.Address != tokenAddress)
+            {
+                if (await web3.CheckTokenAddress(tokenAddress))
+                {
+                    limitTokenInput = await GetTokenInfo(WALLET_ADDRESS, tokenAddress);
+                    _form.Limit_ShowTokenInfo(limitTokenInput);
+                }
+            }
+        }
+
+        async void Timer_LimitTokenInfo()
+        {
+            bool isTokenListed = false;
+            if (limitTokenInput.Address != null && _form.CheckSelectedMainTab("mainTab_limit"))
+            {
+                foreach (Token limitToken in limitTokens.ToList())
+                {
+                    if(limitToken.Address == limitTokenInput.Address)
+                    {
+                        _form.Limit_ShowTokenInfo(limitToken);
+                        isTokenListed = true;
+                    }
+                }
+                
+                if (!isTokenListed)
+                {
+                    BigDecimal tokenPrice = priceETH / await web3.GetEthTokenInputPrice(limitTokenInput.Address, 1);
+                    limitTokenInput.Price = tokenPrice.RoundAwayFromZero(10);
+                    limitTokenInput.Balance = await web3.GetTokenBalance(WALLET_ADDRESS, limitTokenInput.Address, await web3.GetTokenAbi(limitTokenInput.Address));
+                    _form.Limit_ShowTokenInfo(limitTokenInput);
+                }
+                
+            }
+            //Thread.Sleep(2500);
+            timer_LimitTokenInfo.Change(2500, Timeout.Infinite);
+        }
+
         public int GetLimitOrderCount()
         {
             return limitOrders.Count();
@@ -234,6 +360,23 @@ namespace GannyBot
         public int GetMaxUniqueTokenLimitCount()
         {
             return maxUniqueTokenLimitCount;
+        }
+
+        public void SetLimitOrderStatus(Trade.LimitOrder limitOrder, bool process)
+        {
+            Color background = Color.White;
+            
+            if (process)
+            {
+                limitOrder.Process = true;
+                background = Color.FromArgb(254, 213, 86);
+            }
+            else
+            {
+                limitOrder.Process = false;
+                background = Color.FromArgb(219, 73, 73); ;
+            }
+            _form.ListView2_UpdateTokenColor(limitOrder.ID, background);
         }
 
         public async Task<dynamic> NewLimitOrder(string tokenAddress, string type, BigDecimal price, BigDecimal quantity, decimal slippage, int gasPrice)
@@ -256,11 +399,26 @@ namespace GannyBot
 
             Token token = null;
 
+            
             if (!limitTokens.Exists(x => x.Address == tokenAddress))
             {
-                Token newToken = await GetTokenInfo(WALLET_ADDRESS, tokenAddress);
-                limitTokens.Add(newToken);
-                token = newToken;
+                if (limitTokens.Count() >= maxUniqueTokenLimitCount)
+                {
+                    response.Error = true;
+                    response.Message = "There can be a maximum of " + maxUniqueTokenLimitCount.ToString() + " unique token for limit.";
+                    return response;
+                }
+                if (limitTokenInput.Address == tokenAddress)
+                {
+                    limitTokens.Add(limitTokenInput);
+                    token = limitTokenInput;
+                }
+                else
+                {
+                    Token newToken = await GetTokenInfo(WALLET_ADDRESS, tokenAddress);
+                    limitTokens.Add(newToken);
+                    token = newToken;
+                }
             }
             else
             {
@@ -268,24 +426,19 @@ namespace GannyBot
                 {
                     if (tokenLocal.Address == tokenAddress)
                     {
-                        if (limitTokens.Count() >= maxUniqueTokenLimitCount)
-                        {
-                            response.Error = true;
-                            response.Message = "There can be a maximum of " + maxUniqueTokenLimitCount.ToString() + " unique token for limit.";
-                            return response;
-                        }
-
                         token = tokenLocal;
                         break;
                     }
                 }
             }
 
-            LimitOrder limitOrder = new LimitOrder();
-            limitOrder.Address = tokenAddress;
+            Trade.LimitOrder limitOrder = new Trade.LimitOrder();
             limitOrder.Symbol = token.Symbol;
             limitOrder.Type = type;
             limitOrder.Price = price;
+            limitOrder.WalletAddress = WALLET_ADDRESS;
+            limitOrder.InputAddress = web3.GetWETHAddress();
+            limitOrder.OutputAddress = tokenAddress;
             limitOrder.Quantity = quantity;
             limitOrder.Slippage = slippage;
             limitOrder.GasPrice = gasPrice;
@@ -302,14 +455,14 @@ namespace GannyBot
         public void DeleteLimitOrder(int ID, string address)
         {
             int sameTokenCount = 0;
-            foreach (LimitOrder order in limitOrders.orders.ToList())
+            foreach (Trade.LimitOrder limitOrder in limitOrders.orders.ToList())
             {
-                if (order.Address == address) sameTokenCount++;
+                if (limitOrder.OutputAddress == address) sameTokenCount++;
 
-                if (order.ID == ID)
+                if (limitOrder.ID == ID)
                 {
                     _form.ListView2_RemoveItem(ID.ToString());
-                    limitOrders.Remove(order);
+                    limitOrders.Remove(limitOrder);
                     sameTokenCount--;
                 }
             }
@@ -327,52 +480,22 @@ namespace GannyBot
             }
         }
 
-        private void DeleteAllLimitOrder()
+        void DeleteAllLimitOrder()
         {
-            foreach (LimitOrder limitOrder in limitOrders.orders.ToList())
+            foreach (Trade.LimitOrder limitOrder in limitOrders.orders.ToList())
             {
-                DeleteLimitOrder(limitOrder.ID, limitOrder.Address);
+                DeleteLimitOrder(limitOrder.ID, limitOrder.OutputAddress);
             }
         }
 
-        async public Task<bool> CheckLimitStatus(LimitOrder limitOrder, dynamic transactionReceipt)
-        {
-            if (transactionReceipt.Error)
-            {
-                System.Diagnostics.Debug.WriteLine("Error: " + transactionReceipt.Message);
-                return false;
-            }
-            else
-            {
-                dynamic transactionDetails = await web3.GetTransactionDetails(transactionReceipt.TransactionHash);
-
-                if (transactionDetails.Status == "Successful")
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            return false;
-        }
-
-        async private Task LimitTrade(LimitOrder limitOrder, BigDecimal tokenPrice)
+        async Task LimitTrade(Trade.LimitOrder limitOrder, BigDecimal tokenPrice)
         {
             if (limitOrder.Type == "Buy")
             {
-                // Buy
-                dynamic transactionReceipt = await web3.MakeTradeInput(
-                        web3.WALLET_ADDRESS,
-                        web3.GetWETHAddress(),
-                        limitOrder.Address,
-                        limitOrder.Quantity,
-                        limitOrder.Slippage,
-                        limitOrder.GasPrice
-                        );
+                SetLimitOrderStatus(limitOrder, true);
+                dynamic response = await BuyToken(limitOrder.OutputAddress, limitOrder.Quantity, limitOrder.Slippage, limitOrder.GasPrice);
 
-                if(await CheckLimitStatus(limitOrder, transactionReceipt))
+                if(!response.Error)
                 {
                     DeleteLimitOrder(limitOrder.ID, WALLET_ADDRESS);
                     System.Diagnostics.Debug.WriteLine("\n- BUY | " + limitOrder.Symbol);
@@ -380,7 +503,7 @@ namespace GannyBot
                 }
                 else
                 {
-                    limitOrder.Process = false;
+                    SetLimitOrderStatus(limitOrder, false);
                     limitOrder.ErrorCount--;
 
                     if(limitOrder.ErrorCount <= 0)
@@ -391,19 +514,18 @@ namespace GannyBot
             }
             else if (limitOrder.Type == "Sell")
             {
-                // Sell
-                if(!await web3.CheckApprove(WALLET_ADDRESS, limitOrder.Address, await web3.GetTokenAbi(limitOrder.Address)))
+                SetLimitOrderStatus(limitOrder, true);
+
+                BigDecimal approvedAmount = await web3.CheckApprove(WALLET_ADDRESS, limitOrder.OutputAddress, await web3.GetTokenAbi(limitOrder.OutputAddress));
+                if (approvedAmount < limitOrder.Quantity)
                 {
                     System.Diagnostics.Debug.WriteLine("\n- Check Approve | " + limitOrder.Symbol);
-                    dynamic approveTransactionReceipt = await web3.Approve(
-                            limitOrder.Address,
-                            limitOrder.Quantity
-                        );
+                    dynamic approveResponse = await ApproveToken(limitOrder.OutputAddress, limitOrder.Quantity);
 
-                    if(!await CheckLimitStatus(limitOrder, approveTransactionReceipt))
+                    if(!approveResponse.Error)
                     {
                         System.Diagnostics.Debug.WriteLine("- Approve False | " + limitOrder.Symbol);
-                        limitOrder.Process = false;
+                        SetLimitOrderStatus(limitOrder, false);
                         limitOrder.ErrorCount--;
 
                         if (limitOrder.ErrorCount <= 0)
@@ -416,22 +538,11 @@ namespace GannyBot
                     {
                         System.Diagnostics.Debug.WriteLine("- Approve True | " + limitOrder.Symbol);
                     }
-                    
                 }
 
-                System.Diagnostics.Debug.WriteLine("İşlem gönderildi | " + limitOrder.Symbol);
-                dynamic transactionReceipt = await web3.MakeTradeInput(
-                        web3.WALLET_ADDRESS,
-                        limitOrder.Address,
-                        web3.GetWETHAddress(),
-                        limitOrder.Quantity,
-                        limitOrder.Slippage,
-                        limitOrder.GasPrice
-                        );
+                dynamic response = await SellToken(limitOrder.OutputAddress, limitOrder.Quantity, limitOrder.Slippage, limitOrder.GasPrice);
 
-                System.Diagnostics.Debug.WriteLine("İşlem alındı | " + limitOrder.Symbol);
-
-                if (await CheckLimitStatus(limitOrder, transactionReceipt))
+                if (!response.Error)
                 {
                     DeleteLimitOrder(limitOrder.ID, WALLET_ADDRESS);
                     System.Diagnostics.Debug.WriteLine("\n- SELL | " + limitOrder.Symbol);
@@ -439,7 +550,7 @@ namespace GannyBot
                 }
                 else
                 {
-                    limitOrder.Process = false;
+                    SetLimitOrderStatus(limitOrder, false);
                     limitOrder.ErrorCount--;
 
                     System.Diagnostics.Debug.WriteLine("- Error Count: | " + limitOrder.ErrorCount.ToString());
@@ -452,56 +563,63 @@ namespace GannyBot
             }
         }
 
-        async private void timer1_Tick()
+        async void timer1_Tick()
         {
-            if (limitTokens.Count > 0)
+            foreach (Token limitToken in limitTokens.ToList())
             {
-                //decimal priceETH = await GetWETHPrice_Api();
-                BigDecimal priceETH = await GetWETHPrice_Router();
-                //System.Diagnostics.Debug.WriteLine("\npriceEth: " + priceETH.ToString());
+                BigDecimal tokenPrice = priceETH / await web3.GetEthTokenInputPrice(limitToken.Address, 1);
 
-                foreach (Token limitToken in limitTokens.ToList())
+                limitToken.Price = tokenPrice;
+                limitToken.Balance = await web3.GetTokenBalance(WALLET_ADDRESS, limitToken.Address, await web3.GetTokenAbi(limitToken.Address));
+
+                // limitToken.Balance = await web3.GetTokenBalance(WALLET_ADDRESS, limitToken.Address, await web3.GetTokenAbi(limitToken.Address));
+                _form.ListView2_UpdateTokenPrice(limitToken.Address, tokenPrice);
+
+                foreach (Trade.LimitOrder limitOrder in limitOrders.orders.ToList())
                 {
-                    BigDecimal tokenPrice = priceETH / await web3.GetEthTokenInputPrice(limitToken.Address, 1);
-
-                    if (limitToken.Decimals != 18)
+                    if(!limitOrder.Process && limitOrder.OutputAddress == limitToken.Address)
                     {
-                        tokenPrice /= Math.Pow(10, 18 - limitToken.Decimals);
-                    }
-
-                    limitToken.Price = tokenPrice;
-                    limitToken.Balance = web3.GetTokenBalance(WALLET_ADDRESS, limitToken.Address, await web3.GetTokenAbi(limitToken.Address));
-                    _form.ListView2_UpdateTokenPrice(limitToken.Address, tokenPrice);
-
-                    foreach (LimitOrder limitOrder in limitOrders.orders.ToList())
-                    {
-                        if(!limitOrder.Process && limitOrder.Address == limitToken.Address)
+                        if(limitOrder.Type == "Buy" && limitOrder.Price >= tokenPrice)
                         {
-                            if(limitOrder.Type == "Buy" && limitOrder.Price >= tokenPrice)
+                            System.Diagnostics.Debug.WriteLine("-------- Worker Buy");
+
+                            LimitTrade(limitOrder, tokenPrice);
+                        }
+                        else if(limitOrder.Type == "Sell" && limitOrder.Price <= tokenPrice)
+                        {
+                            if(limitToken.Balance > 0)
                             {
-                                limitOrder.Process = true;
-                                System.Diagnostics.Debug.WriteLine("-------- Worker Buy");
+                                System.Diagnostics.Debug.WriteLine("-------- Worker Sell");
 
                                 LimitTrade(limitOrder, tokenPrice);
-                            }
-                            else if(limitOrder.Type == "Sell" && limitOrder.Price <= tokenPrice)
-                            {
-                                if(limitToken.Balance > 0)
-                                {
-                                    limitOrder.Process = true;
-                                    System.Diagnostics.Debug.WriteLine("-------- Worker Sell");
-
-                                    LimitTrade(limitOrder, tokenPrice);
-                                }
                             }
                         }
                     }
                 }
             }
             
+            
             Thread.Sleep(1000);
             timer1.Change(1000, Timeout.Infinite);
         }
         #endregion
+    }
+
+    class Decorator : BotManager
+    {
+        readonly BotManager _bot;
+        public Decorator(BotManager bot)
+        {
+            _bot = bot;
+        }
+    }
+
+    class BotDecorator : Decorator
+    {
+        readonly BotManager _bot;
+        public BotDecorator(BotManager bot) : base(bot)
+        {
+            _bot = bot;
+        }
     }
 }
