@@ -8,6 +8,7 @@ using System.Data.SQLite;
 using System.IO;
 
 using Newtonsoft.Json;
+using System.Windows.Forms;
 
 namespace GannyBot.Database
 {
@@ -22,13 +23,21 @@ namespace GannyBot.Database
         {
             if (Exist())
             {
-                con = new SQLiteConnection("Data Source=GannyBot.db;Version=3;");
+                try
+                {
+                    con = new SQLiteConnection("Data Source=" + AppDomain.CurrentDomain.BaseDirectory + "/GannyBot.db;Version=3;");
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show("Database Error: " + ex.Message);
+                }
+                
             }
         }
 
         public bool Exist()
         {
-            if (!File.Exists("GannyBot.db"))
+            if (!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/GannyBot.db"))
             {
                 return false;
             }

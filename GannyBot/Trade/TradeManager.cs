@@ -37,9 +37,9 @@ namespace GannyBot.Trade
             return response;
         }
 
-        public static dynamic GetTxGas(int estimatedGas)
+        public static int GetTxGas(dynamic estimatedGas)
         {
-            return estimatedGas * 2;
+            return (int)estimatedGas.Gas * 2;
         }
 
         static System.Numerics.BigInteger GetTxDeadline()
@@ -91,6 +91,7 @@ namespace GannyBot.Trade
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 dynamic responseMessage = new ExpandoObject();
                 responseMessage.Error = true;
                 responseMessage.Message = ex.Message;
@@ -168,7 +169,7 @@ namespace GannyBot.Trade
 
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
@@ -200,7 +201,7 @@ namespace GannyBot.Trade
 
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
@@ -228,7 +229,7 @@ namespace GannyBot.Trade
             dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
@@ -254,7 +255,7 @@ namespace GannyBot.Trade
             dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
@@ -280,7 +281,7 @@ namespace GannyBot.Trade
             dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
@@ -308,7 +309,7 @@ namespace GannyBot.Trade
             dynamic estimatedGas = await GetEstimated(swapHandler, swapDTO);
             if (estimatedGas.Error) return estimatedGas;
 
-            swapDTO.Gas = GetTxGas(estimatedGas.Gas);
+            swapDTO.Gas = GetTxGas(estimatedGas);
 
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }

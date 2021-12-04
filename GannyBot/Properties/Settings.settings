@@ -1,23 +1,5 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GannyBot.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
   <Profiles />
-  <Settings>
-    <Setting Name="wallet_address" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0x395a4b0E86B49E321d5e81B08bf2b4F2a6E01BC9</Value>
-    </Setting>
-    <Setting Name="wallet_private_key" Type="System.String" Scope="User">
-      <Value Profile="(Default)">1d5e5569d1ffbbecc98816fb9c519ce72e122221d4ece24a4f0680ad838ff65d</Value>
-    </Setting>
-    <Setting Name="chain" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Binance Smart Chain</Value>
-    </Setting>
-    <Setting Name="GannyBotConnectionString" Type="(Connection string)" Scope="Application">
-      <DesignTimeValue Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
-&lt;SerializableConnectionString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
-  &lt;ConnectionString&gt;Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\GannyBot.mdf;Integrated Security=True&lt;/ConnectionString&gt;
-  &lt;ProviderName&gt;System.Data.SqlClient&lt;/ProviderName&gt;
-&lt;/SerializableConnectionString&gt;</DesignTimeValue>
-      <Value Profile="(Default)">Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\GannyBot.mdf;Integrated Security=True</Value>
-    </Setting>
-  </Settings>
+  <Settings />
 </SettingsFile>

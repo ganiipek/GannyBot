@@ -70,7 +70,7 @@ namespace GannyBot.Chain
             return (decimal)((double)balance / Math.Pow(10, decimals));
         }
 
-        public static async Task<Nethereum.RPC.Eth.Transactions.IEthGetTransactionCount> GetNonce()
+        public static async Task<HexBigInteger> GetNonce()
         {
             return await Web3Manager.Web3().Eth.Transactions.GetTransactionCount.SendRequestAsync(Web3Manager.Account().Address, BlockParameter.CreatePending());
         }

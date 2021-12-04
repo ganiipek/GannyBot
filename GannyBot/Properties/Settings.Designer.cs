@@ -22,52 +22,5 @@ namespace GannyBot.Properties {
                 return defaultInstance;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0x395a4b0E86B49E321d5e81B08bf2b4F2a6E01BC9")]
-        public string wallet_address {
-            get {
-                return ((string)(this["wallet_address"]));
-            }
-            set {
-                this["wallet_address"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1d5e5569d1ffbbecc98816fb9c519ce72e122221d4ece24a4f0680ad838ff65d")]
-        public string wallet_private_key {
-            get {
-                return ((string)(this["wallet_private_key"]));
-            }
-            set {
-                this["wallet_private_key"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Binance Smart Chain")]
-        public string chain {
-            get {
-                return ((string)(this["chain"]));
-            }
-            set {
-                this["chain"] = value;
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\\GannyBot.mdf;" +
-            "Integrated Security=True")]
-        public string GannyBotConnectionString {
-            get {
-                return ((string)(this["GannyBotConnectionString"]));
-            }
-        }
     }
 }

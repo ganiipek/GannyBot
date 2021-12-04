@@ -41,9 +41,6 @@ namespace GannyBot
 
         public bool Start()
         {
-            if (Properties.Settings.Default.chain == "Binance Smart Chain") selectedChain = chain.binance_smart_chain;
-            else if (Properties.Settings.Default.chain == "Binance Smart Chain TestNet") selectedChain = chain.binance_smart_chain_test;
-
             if (!Web3.IsChecksumAddress(WALLET_ADDRESS)) return false;
 
             account = new Account(WALLET_PRIVATE_KEY, GetChainID());
