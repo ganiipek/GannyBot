@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nethereum.Util;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -99,6 +100,21 @@ namespace GannyBot.Chain
         public static Token Token()
         {
             return Chain.Token;
+        }
+
+        public static Token USDTToken()
+        {
+            return Chain.USDT;
+        }
+
+        public static void UpdateWETHTokenPrice(BigDecimal price)
+        {
+            Chain.Token.Price = price;
+        }
+
+        public static void UpdateWETHTokenBalance(BigDecimal balance)
+        {
+            Chain.Token.Balance = balance;
         }
     }
 }

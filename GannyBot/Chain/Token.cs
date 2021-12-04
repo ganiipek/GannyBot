@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nethereum.Util;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,5 +15,13 @@ namespace GannyBot.Chain
         public string Address { get; set; }
         public int Decimals { get; set; }
         public string Abi { get; set; }
+        public BigDecimal Price { get; set; }
+        public BigDecimal Balance { get; set; }
+
+        public Token()
+        {
+            Price = 0;
+            Balance = 0;
+        }
     }
 }

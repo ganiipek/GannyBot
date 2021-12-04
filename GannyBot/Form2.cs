@@ -19,16 +19,23 @@ namespace GannyBot
             InitializeComponent();
             web3.StartOnlyChain();
 
-            textBox1.Text = Properties.Settings.Default.wallet_address;
-            textBox2.Text = Properties.Settings.Default.wallet_private_key;
+            textBox1.Text = Chain.WalletManager.Address();
+            textBox2.Text = Chain.WalletManager.Key();
 
-            if (Properties.Settings.Default.chain == "Binance Smart Chain") comboBox1.SelectedIndex = 0;
-            else if (Properties.Settings.Default.chain == "Binance Smart Chain TestNet") comboBox1.SelectedIndex = 1;
+            switch (Chain.ChainManager.Name())
+            {
+                case "Smart Chain":
+                    comboBox1.SelectedIndex = 0;
+                    break;
+                case "Smart Chain Test":
+                    comboBox1.SelectedIndex = 1;
+                    break;
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if(!web3.CheckWalletAddress(textBox1.Text))
+            if(!Chain.WalletManager.CheckWalletAddress(textBox1.Text))
             {
                 MessageBox.Show("Invalid Wallet Address");
                 return;
@@ -40,17 +47,41 @@ namespace GannyBot
                 return;
             }
 
-            if(!web3.ControlPrivateKey(textBox1.Text, textBox2.Text))
+            if(!Chain.WalletManager.Check(textBox1.Text, textBox2.Text, Chain.ChainManager.ChainID()))
             {
                 MessageBox.Show("Wallet address and private key do not match.");
                 return;
             }
 
-            Properties.Settings.Default.wallet_address = textBox1.Text;
-            Properties.Settings.Default.wallet_private_key = textBox2.Text;
-            Properties.Settings.Default.chain = comboBox1.SelectedItem.ToString();
+            Chain.chain chain = new Chain.chain();
 
-            _form1.Web3Initialize();
+            switch (comboBox1.SelectedItem.ToString())
+            {
+                case "Binance Smart Chain":
+                    chain = Chain.chain.binance_smart_chain;
+                    break;
+                case "Binance Smart Chain TestNet":
+                    chain = Chain.chain.binance_smart_chain_test;
+                    break;
+            }
+            Database.DatabaseManager db = new Database.DatabaseManager();
+            db.DeleteAccount();
+
+            string KeyString = Security.CryptManager.GenerateAPassKey("SS2131asdajn1!^!'ÇDASD!^1231231231");
+            string EncryptedPassword = Security.CryptManager.Encrypt(textBox2.Text, KeyString);
+            db.AddAccount(textBox1.Text, EncryptedPassword);
+
+            Chain.ChainManager.Select(chain);
+            Chain.WalletManager.Set(
+                textBox1.Text,
+                textBox2.Text,
+                Chain.ChainManager.ChainID()
+                );
+            Chain.Web3Manager.Start();
+            Chain.RouterManager.Select(Chain.router.PancakeSwapV2);
+
+            _form1.SetWeb3Status();
+
             this.Close();
         }
 

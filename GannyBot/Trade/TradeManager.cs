@@ -14,9 +14,9 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 namespace GannyBot.Trade
 {
-    internal class TradeManager
+    internal static class TradeManager
     {
-        async Task<dynamic> GetEstimated(dynamic handler, dynamic transfer)
+        static async Task<dynamic> GetEstimated(dynamic handler, dynamic transfer)
         {
             dynamic response = new ExpandoObject();
             
@@ -37,22 +37,22 @@ namespace GannyBot.Trade
             return response;
         }
 
-        public dynamic GetTxGas(int estimatedGas)
+        public static dynamic GetTxGas(int estimatedGas)
         {
             return estimatedGas * 2;
         }
 
-        System.Numerics.BigInteger GetTxDeadline()
+        static System.Numerics.BigInteger GetTxDeadline()
         {
             return ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() + 1200;
         }
 
-        async Task<dynamic> GetTxNonce()
+        static async Task<dynamic> GetTxNonce()
         {
             return await Chain.WalletManager.GetNonce();
         }
 
-        public async Task<dynamic> Approve(string tokenAddress, BigDecimal quantity)
+        public static async Task<dynamic> Approve(string tokenAddress, BigDecimal quantity)
         {
             var approveHandler = Chain.Web3Manager.Web3().Eth.GetContractTransactionHandler<ApproveFunction>();
             var approveDTO = new ApproveFunction()
@@ -64,7 +64,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(tokenAddress, approveHandler, approveDTO);
         }
 
-        public async Task<dynamic> MakeTradeInput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        public static async Task<dynamic> MakeTradeInput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace GannyBot.Trade
             }
         }
 
-        public async Task<dynamic> MakeTradeOutput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        public static async Task<dynamic> MakeTradeOutput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             if (inputTokenAddress == Chain.ChainManager.Token().Address)
             {
@@ -122,7 +122,7 @@ namespace GannyBot.Trade
             }
         }
 
-        async Task<dynamic> BuildAndSendTx(string contractAddress, dynamic swapHandler, dynamic swapDTO)
+        static async Task<dynamic> BuildAndSendTx(string contractAddress, dynamic swapHandler, dynamic swapDTO)
         {
             dynamic responseMessage = new ExpandoObject();
             try
@@ -144,7 +144,7 @@ namespace GannyBot.Trade
             return responseMessage;
         }
 
-        async Task<dynamic> EthToTokenSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> EthToTokenSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal amountOutMin = ((100 - slippage) / 100) * await Chain.TokenManager.GetEthTokenInputPrice(tokenAddress, quantity);
 
@@ -173,7 +173,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        async Task<dynamic> TokenToEthSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> TokenToEthSwapInput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal amountOutMin = ((100 - slippage) / 100) * await Chain.TokenManager.GetTokenEthInputPrice(tokenAddress, quantity);
 
@@ -205,7 +205,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        async Task<dynamic> TokenToTokenSwapInput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> TokenToTokenSwapInput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal minTokensBought = ((100 - slippage) / 100) * await Chain.TokenManager.GetTokenTokenInputPrice(inputTokenAddress, outputTokenAddress, quantity);
 
@@ -233,7 +233,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        async Task<dynamic> EthToTokenSwapOutput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> EthToTokenSwapOutput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal eth_qty = await Chain.TokenManager.GetEthTokenOutputPrice(tokenAddress, quantity);
             var swapHandler = Chain.Web3Manager.Web3().Eth.GetContractTransactionHandler<SwapETHForExactTokensFunction>();
@@ -259,7 +259,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        async Task<dynamic> TokenToEthSwapOutput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> TokenToEthSwapOutput(string walletAddress, string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal maxTokens = ((100 + slippage) / 100) * await Chain.TokenManager.GetTokenEthOutputPrice(tokenAddress, quantity);
             var swapHandler = Chain.Web3Manager.Web3().Eth.GetContractTransactionHandler<SwapTokensForExactETHFunction>();
@@ -285,7 +285,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        async Task<dynamic> TokenToTokenSwapOutput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        static async Task<dynamic> TokenToTokenSwapOutput(string walletAddress, string inputTokenAddress, string outputTokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             BigDecimal amountInMax = ((100 + slippage) / 100) * await Chain.TokenManager.GetTokenTokenOutputPrice(inputTokenAddress, outputTokenAddress, quantity);
 
@@ -313,7 +313,7 @@ namespace GannyBot.Trade
             return await BuildAndSendTx(Chain.RouterManager.Address(), swapHandler, swapDTO);
         }
 
-        public async Task<dynamic> GetTransactionDetails(string transactionHash)
+        public static async Task<dynamic> GetTransactionDetails(string transactionHash)
         {
             var transactionReceipt = await Chain.Web3Manager.Web3().Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transactionHash);
             var transaction = await Chain.Web3Manager.Web3().Eth.Transactions.GetTransactionByHash.SendRequestAsync(transactionHash);
@@ -339,6 +339,36 @@ namespace GannyBot.Trade
             transactionDetails.Value = Web3.Convert.FromWei(transaction.Value.ToUlong(), UnitConversion.EthUnit.Ether).ToString();
 
             return transactionDetails;
+        }
+
+        public static async Task<dynamic> CheckTransactionStatus(dynamic transactionReceipt)
+        {
+            dynamic response = new ExpandoObject();
+
+            if (transactionReceipt.Error)
+            {
+                response.Error = true;
+                response.Message = transactionReceipt.Message;
+            }
+            else
+            {
+                dynamic transactionDetails = await GetTransactionDetails(transactionReceipt.TransactionHash);
+                response.Error = false;
+                response.TransactionDetails = transactionDetails;
+            }
+            return response;
+        }
+
+        public static async Task<BigDecimal> GetEthToTokenMinimumReceived(string tokenAddress, BigDecimal price, BigDecimal quantity, decimal slippage)
+        {
+            BigDecimal amountOutMin = ((100 - slippage) / 100) * await Chain.TokenManager.GetEthTokenInputPrice(tokenAddress, quantity);
+            return amountOutMin;
+        }
+
+        public static async Task<BigDecimal> GetTokenToEthMinimumReceived(string tokenAddress, BigDecimal price, BigDecimal quantity, decimal slippage)
+        {
+            BigDecimal amountOutMin = ((100 - slippage) / 100) * await Chain.TokenManager.GetTokenEthInputPrice(tokenAddress, quantity);
+            return amountOutMin;
         }
     }
 }

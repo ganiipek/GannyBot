@@ -52,7 +52,6 @@
             this.label35 = new System.Windows.Forms.Label();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.button20 = new System.Windows.Forms.Button();
-            this.button9 = new System.Windows.Forms.Button();
             this.label34 = new System.Windows.Forms.Label();
             this.label33 = new System.Windows.Forms.Label();
             this.label32 = new System.Windows.Forms.Label();
@@ -403,7 +402,6 @@
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.button20);
-            this.groupBox3.Controls.Add(this.button9);
             this.groupBox3.Controls.Add(this.label34);
             this.groupBox3.Controls.Add(this.label33);
             this.groupBox3.Controls.Add(this.label32);
@@ -414,6 +412,7 @@
             this.groupBox3.TabIndex = 0;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "ACCOUNT INFORMATION";
+            this.groupBox3.Enter += new System.EventHandler(this.groupBox3_Enter);
             // 
             // button20
             // 
@@ -424,16 +423,6 @@
             this.button20.Text = "Settings";
             this.button20.UseVisualStyleBackColor = true;
             this.button20.Click += new System.EventHandler(this.button20_Click);
-            // 
-            // button9
-            // 
-            this.button9.Location = new System.Drawing.Point(406, 42);
-            this.button9.Name = "button9";
-            this.button9.Size = new System.Drawing.Size(75, 23);
-            this.button9.TabIndex = 4;
-            this.button9.Text = "Refresh";
-            this.button9.UseVisualStyleBackColor = true;
-            this.button9.Click += new System.EventHandler(this.button9_Click);
             // 
             // label34
             // 
@@ -942,6 +931,7 @@
             this.textBox3.Size = new System.Drawing.Size(196, 20);
             this.textBox3.TabIndex = 4;
             this.textBox3.Text = "0,0001";
+            this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
             // 
             // label9
             // 
@@ -1771,7 +1761,6 @@
         private System.Windows.Forms.Label label37;
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.Label label35;
-        private System.Windows.Forms.Button button9;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ColumnHeader columnHeader2;
         private System.Windows.Forms.TextBox textBox11;

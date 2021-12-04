@@ -24,8 +24,8 @@ namespace GannyBot
             string mail = textBox1.Text;
             string password = textBox2.Text;
 
-            Form1.clientSocket.SendData("{'type':'login', 'email':'"+ mail + "', 'password':'"+ password + "'}");
-            dynamic receiveData = Form1.clientSocket.ReceiveData();
+            UI.UIManager.clientSocket.SendData("{'type':'login', 'email':'" + mail + "', 'password':'" + password + "'}");
+            dynamic receiveData = UI.UIManager.clientSocket.ReceiveData();
             string strData = receiveData.ToString();
             System.Diagnostics.Debug.WriteLine(strData);
 
@@ -42,7 +42,7 @@ namespace GannyBot
             }
             else
             {
-                _form1.LOGIN = true;
+                UI.UIManager.LOGIN = true;
                 this.Close();
             }
         }

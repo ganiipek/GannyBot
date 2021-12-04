@@ -11,7 +11,13 @@ namespace GannyBot.Chain
 {
     internal class Web3Base
     {
+        public bool Connected { get; set; }
         public Web3 Web3 { get; set; }
         public Account Account { get; set; }
+
+        public Web3Base()
+        {
+            Connected = false;
+        }
     }
 }

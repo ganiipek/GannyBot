@@ -13,18 +13,21 @@ namespace GannyBot.Chain
 {
     internal static class WalletManager
     {
+        public static Database.DatabaseManager database = new Database.DatabaseManager();
+
         public static bool Set(string address, string privateKey, Int32 ChainID)
         {
             if (Check(address, privateKey, ChainID))
             {
                 Wallet.Address = address;
                 Wallet.PrivateKey = privateKey;
+
                 return true;
             }
             return false;
         }
 
-        static bool Check(string address, string privateKey, Int32 ChainID)
+        public static bool Check(string address, string privateKey, Int32 ChainID)
         {
             Account local_account = new Account(privateKey, ChainID);
 
@@ -35,9 +38,19 @@ namespace GannyBot.Chain
             return false;
         }
 
+        public static bool CheckWalletAddress(string walletAddress)
+        {
+            return Web3.IsChecksumAddress(walletAddress);
+        }
+
         public static string Address()
         {
             return Wallet.Address;
+        }
+
+        public static string Key()
+        {
+            return Wallet.PrivateKey;
         }
 
         public static async Task<decimal> GetWETHBalance(string address)

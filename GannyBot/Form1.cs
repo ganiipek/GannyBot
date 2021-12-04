@@ -14,55 +14,35 @@ using Newtonsoft.Json;
 
 using Nethereum.Util;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace GannyBot
 {
     public partial class Form1 : Form
     {
-        public bool LOGIN = false;
-        //public Database db = new Database();
-        BotManager Bot = new BotManager();
-        public static ClientSocket clientSocket;
-        LoginForm loginForm = new LoginForm();
-
-        System.Threading.Timer timer_Socket;
-
+        UI.UIManager uiManager;
         public Form1()
         {
-            // db.Initialize();
-
-            BotManager._form = this;
             Form2._form1 = this;
             LoginForm._form1 = this;
 
             InitializeComponent();
-            
-            ConnectSocket();
 
-            if (!LOGIN)
-            {
-                Exit();
-            }
-            
-            Web3Initialize();
+            Chain.Web3Manager._form1 = this;
+            UI.LimitManager._form1 = this;
+            UI.MarketManager._form1 = this;
+            UI.WalletManager._form1 = this;
+            UI.UIManager._form1 = this;
 
+            uiManager = new UI.UIManager();
+            
+            
             comboBox1.SelectedIndex = 0;
             comboBox3.SelectedIndex = 0;
             comboBox4.SelectedIndex = 0;
             comboBox5.SelectedIndex = 0;
 
-            groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
-            label40.Text = Bot.web3.GetMainTokenName()+":";
-
-            timer_Socket = new System.Threading.Timer(_ => Timer_Socket(), null, 0, Timeout.Infinite);
-
-            //foreach(Token token in db.GetWalletTokenList())
-            //{
-            //    string[] row = { token.Name, token.Symbol, token.Address };
-
-            //    var listViewItem = new ListViewItem(row);
-            //    listView1.Items.Add(listViewItem);
-            //}
+            label40.Text = Chain.ChainManager.Token().Symbol + ":";
 
             SetToolTip();
         }
@@ -81,87 +61,54 @@ namespace GannyBot
             toolTip1.SetToolTip(this.label70, "Deneme");
         }
 
-        void Timer_Socket()
-        {
-            System.Diagnostics.Debug.WriteLine("Socket Connection :" + clientSocket.IsConnected().ToString());
-            if (!clientSocket.IsConnected())
-            {
-                clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
-                clientSocket.Start();
-            }
-            timer_Socket.Change(5000, Timeout.Infinite);
-        }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            clientSocket.Close();
+            //clientSocket.Close();
         }
 
-        void Exit()
+        public void Exit()
         {
             Application.Exit();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
 
-        void ConnectSocket()
+
+        public void ShowWETHPrice(BigDecimal price)
         {
-            int port = 3131;
-            Console.WriteLine(string.Format("Client Başlatıldı. Port: {0}", port));
-            Console.WriteLine("-----------------------------");
-
-            clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
-
-            if (clientSocket.Start())
-            {
-                loginForm.ShowDialog();
-            }
-            else
-            {
-                MessageBox.Show("Sunucuya bağlanılmıyor");
-                Exit();
-            }
+            label46.Text = price.ToString() + " $";
         }
 
-        public bool Web3Initialize()
+        public void SetWeb3Status()
         {
-            Bot.WALLET_ADDRESS = Properties.Settings.Default.wallet_address;
-            Bot.WALLET_PRIVATE_KEY = Properties.Settings.Default.wallet_private_key;
-
-            System.Diagnostics.Debug.WriteLine("kontrol 1");
-            if (Bot.Initialize())
+            if (Chain.Web3Manager.IsConnected())
             {
-                System.Diagnostics.Debug.WriteLine("Connected");
+                Console.WriteLine("Web3: Connected");
                 label8.Text = "Connected";
                 label8.ForeColor = Color.Green;
-                label73.Text = Bot.web3.GetChainName();
-                label33.Text = Properties.Settings.Default.wallet_address;
-
-                return true;
+                label73.Text = Chain.ChainManager.Name();
+                label33.Text = Chain.WalletManager.Address();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("Disconnected");
+                Console.WriteLine("Web3: Disconnected");
                 label8.Text = "Disconnected";
                 label8.ForeColor = Color.Red;
                 label73.Text = "-";
                 label33.Text = "-";
-
-                return false;
             }
         }
-
-        void clearMarketTransactionInformation()
+        /**********************************************************/
+        /************************* WALLET *************************/
+        /**********************************************************/
+        public void ShowWalletAddress(string address)
         {
-            linkLabel1.Text = "";
-            linkLabel1.Links.Clear();
-            label56.Text = "";
-            label57.Text = "";
-            label62.Text = "";
-            label63.Text = "";
-            label64.Text = "";
-            label65.Text = "";
-            label66.Text = "";
-            label67.Text = "";
+            label33.Text = address;
+        }
+
+        public void ShowWalletBalance(BigDecimal balance)
+        {
+            label34.Text = balance.ToString() + " BNB";
         }
 
         void listView1_SelectedIndexChanged(object sender, EventArgs e)
@@ -169,31 +116,19 @@ namespace GannyBot
             if (this.listView1.SelectedItems.Count == 0)
                 return;
 
-            string tokenName = listView1.SelectedItems[0].Text;
-
-            //foreach (Token token in tokens)
-            //{
-            //    if(token.Name == tokenName)
-            //    {
-            //        showToken(token);
-            //    }
-            //}
+            string address = listView1.SelectedItems[0].SubItems[2].Text;
+            uiManager.walletManager.ShowSelectedToken(address);
         }
 
-        async void button9_Click(object sender, EventArgs e)
+        public void Wallet_ListViewAddItem(Chain.Token token)
         {
-            decimal account_balance = await Bot.web3.GetEthBalance(Bot.WALLET_ADDRESS);
-            label34.Text = account_balance.ToString() + " BNB";
+            string[] row = { token.Name, token.Symbol, token.Address };
+
+            var listViewItem = new ListViewItem(row);
+            listView1.Items.Add(listViewItem);
         }
 
-        public void ShowMainTokenPrice(BigDecimal price)
-        {
-            label46.Text = price.ToString() + " $";
-        }
-        /**********************************************************/
-        /************************* WALLET *************************/
-        /**********************************************************/
-        public void wallet_ShowTokenInfo(Token token)
+        public void Wallet_ShowTokenInfo(Chain.Token token)
         {
             label41.Text = token.Address;
             label42.Text = token.Name;
@@ -202,7 +137,7 @@ namespace GannyBot
             label45.Text = token.Price.ToString();
         }
 
-        public string wallet_ListViewSelectedItem()
+        public string Wallet_ListViewSelectedItem()
         {
             if (listView1.SelectedItems.Count == 0)
                 return null;
@@ -210,7 +145,7 @@ namespace GannyBot
             return listView1.SelectedItems[0].SubItems[2].Text;
         }
 
-        public void wallet_RemoveItem(string address)
+        public void Wallet_RemoveItem(string address)
         {
             foreach (ListViewItem itemRow in listView1.Items)
             {
@@ -227,7 +162,7 @@ namespace GannyBot
         {
             string tokenAddress = textBox1.Text;
 
-            dynamic response = await Bot.wallet_AddToken(tokenAddress);
+            dynamic response = await uiManager.walletManager.AddToken(tokenAddress);
 
             if (response.Error)
             {
@@ -235,14 +170,11 @@ namespace GannyBot
                 return;
             }
 
-            Token token = response.Token;
+            Trade.OrderToken token = response.Token;
 
-            //db.AddWalletToken(token);
+            UI.UIManager.database.AddWalletToken(token);
 
-            string[] row = { token.Name, token.Symbol, token.Address };
-
-            var listViewItem = new ListViewItem(row);
-            listView1.Items.Add(listViewItem);
+            Wallet_ListViewAddItem(token);
 
             textBox1.Text = null;
         }
@@ -255,8 +187,9 @@ namespace GannyBot
 
             string tokenAddress = listView1.SelectedItems[0].SubItems[2].Text;
 
-            Bot.wallet_RemoveToken(tokenAddress);
-            wallet_RemoveItem(tokenAddress);
+            uiManager.walletManager.RemoveToken(tokenAddress);
+            UI.UIManager.database.RemoveWalletTokens(tokenAddress);
+            Wallet_RemoveItem(tokenAddress);
         }
 
         /**********************************************************/
@@ -306,6 +239,20 @@ namespace GannyBot
             return gasPrice;
         }
 
+        void Market_ClearTransactionInformation()
+        {
+            linkLabel1.Text = "";
+            linkLabel1.Links.Clear();
+            label56.Text = "";
+            label57.Text = "";
+            label62.Text = "";
+            label63.Text = "";
+            label64.Text = "";
+            label65.Text = "";
+            label66.Text = "";
+            label67.Text = "";
+        }
+
         private void comboBox5_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comboBox5.SelectedItem.ToString() == "Buy")
@@ -328,7 +275,7 @@ namespace GannyBot
         {
             if(textBox2.Text.Length > 30)
             {
-                Bot.Market_AddTokenInfo(textBox2.Text);
+                uiManager.marketManager.AddToken(textBox2.Text);
             }
         }
 
@@ -337,7 +284,7 @@ namespace GannyBot
             textBox12.Text = amount.ToString();
         }
 
-        public void Market_ShowTokenInfo(Token token)
+        public void Market_ShowTokenInfo(Trade.OrderToken token)
         {
             label13.Text = token.Name;
             label14.Text = token.Symbol;
@@ -345,6 +292,22 @@ namespace GannyBot
             label18.Text = token.Price.ToString();
             label70.Text = token.Balance.ToString();
             label71.Text = token.Approved.ToString();
+
+            label13.ForeColor = Color.Black;
+            label13.ForeColor = Color.Black;
+        }
+
+        public void Market_ShowError(string error)
+        {
+            label13.Text = "Error";
+            label14.Text = error;
+            label16.Text = "";
+            label18.Text = "";
+            label70.Text = "";
+            label71.Text = "";
+
+            label13.ForeColor = Color.Red;
+            label14.ForeColor = Color.Red;
         }
 
         private void Market_ShowTransactionInformation(dynamic response)
@@ -359,7 +322,7 @@ namespace GannyBot
                 dynamic transactionDetails = response.TransactionDetails;
 
                 linkLabel1.Text = transactionDetails.Hash;
-                string links = Bot.web3.GetExplorerURL() + "tx/" + transactionDetails.Hash;
+                string links = Chain.ChainManager.ExplorerUrl() + "tx/" + transactionDetails.Hash;
                 linkLabel1.Links.Add(0, links.Length, links);
                 label56.Text = transactionDetails.Status;
                 label57.Text = transactionDetails.From;
@@ -377,14 +340,18 @@ namespace GannyBot
         private async void button5_Click(object sender, EventArgs e)
         {
             button5.Enabled = false;
-            clearMarketTransactionInformation();
+            Market_ClearTransactionInformation();
 
-            dynamic response = await Bot.BuyToken(
+            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
+                Chain.WalletManager.Address(),
+                Chain.ChainManager.Token().Address,
                 Market_GetTokenAddress(),
                 Market_GetInputValue(),
                 Market_GetSlippage(),
                 Market_GetGasPrice()
                 );
+
+            dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
             Market_ShowTransactionInformation(response);
             button5.Enabled = true;
@@ -395,14 +362,18 @@ namespace GannyBot
         {
             button11.Enabled = false;
             button14.Enabled = false;
-            clearMarketTransactionInformation();
+            Market_ClearTransactionInformation();
 
-            dynamic response = await Bot.SellToken(
+            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
+                Chain.WalletManager.Address(),
                 Market_GetTokenAddress(),
+                Chain.ChainManager.Token().Address,
                 Market_GetInputValue(),
                 Market_GetSlippage(),
                 Market_GetGasPrice()
                 );
+
+            dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
             Market_ShowTransactionInformation(response);
             button11.Enabled = true;
@@ -414,12 +385,14 @@ namespace GannyBot
         {
             button11.Enabled = false;
             button14.Enabled = false;
-            clearMarketTransactionInformation();
+            Market_ClearTransactionInformation();
 
-            dynamic response = await Bot.ApproveToken(
+            dynamic transactionReceipt = await Trade.TradeManager.Approve(
                 Market_GetTokenAddress(),
                 Market_GetInputValue() 
                 );
+
+            dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
             Market_ShowTransactionInformation(response);
             button11.Enabled = true;
@@ -445,11 +418,11 @@ namespace GannyBot
         {
             if (textBox11.Text.Length > 30)
             {
-                Bot.Limit_AddTokenInfo(textBox11.Text);
+                uiManager.limitManager.Limit_AddTokenInfo(textBox11.Text);
             }
         }
 
-        public void Limit_ShowTokenInfo(Token token)
+        public void Limit_ShowTokenInfo(Trade.OrderToken token)
         {
             label86.Text = token.Name;
             label84.Text = token.Symbol;
@@ -457,6 +430,22 @@ namespace GannyBot
             label80.Text = token.Price.ToString();
             label77.Text = token.Balance.ToString();
             label76.Text = token.Approved.ToString();
+
+            label86.ForeColor = Color.Black;
+            label84.ForeColor = Color.Black;
+        }
+
+        public void Limit_ShowError(string error)
+        {
+            label86.Text = "Error";
+            label84.Text = error;
+            label82.Text = "";
+            label80.Text = "";
+            label77.Text = "";
+            label76.Text = "";
+
+            label86.ForeColor = Color.Red;
+            label84.ForeColor = Color.Red;
         }
 
         private string GetTokenAddress_Limit()
@@ -520,7 +509,7 @@ namespace GannyBot
             }
         }
 
-        private void AddItemInLimitView(string id, string symbol, string address, string price, string limit, string type, string amount, string time)
+        public void LimitListView_AddItem(string id, string symbol, string address, string price, string limit, string type, string amount, string time)
         {
             string[] row = {
                 id,
@@ -539,7 +528,7 @@ namespace GannyBot
             listView2.Items.Add(listViewItem);
         }
 
-        public void ListView2_RemoveItem(string id)
+        public void LimitListView_RemoveItem(string id)
         {
             foreach (ListViewItem itemRow in listView2.Items)
             {
@@ -551,7 +540,7 @@ namespace GannyBot
             }
         }
         
-        public void ListView2_UpdateTokenInfo(int subIndex, string tokenAddress, string data)
+        public void LimitListView_UpdateTokenInfo(int subIndex, string tokenAddress, string data)
         {
             foreach (ListViewItem itemRow in listView2.Items)
             {
@@ -563,7 +552,7 @@ namespace GannyBot
             }
         }
 
-        public void ListView2_UpdateTokenColor(int ID, Color background)
+        public void LimitListView_UpdateTokenColor(int ID, Color background)
         {
             foreach (ListViewItem itemRow in listView2.Items)
             {
@@ -574,7 +563,7 @@ namespace GannyBot
             }
         }
 
-        public void ListView2_UpdateTokenPrice(string tokenAddress, BigDecimal price)
+        public void LimitListView_UpdateTokenPrice(string tokenAddress, BigDecimal price)
         {
             int addressIndex = 2;
             int priceIndex = 3;
@@ -613,7 +602,7 @@ namespace GannyBot
         // Add Button
         private async void button17_Click(object sender, EventArgs e)
         {
-            dynamic response = await Bot.NewLimitOrder(
+            dynamic response = await uiManager.limitManager.NewLimitOrder(
                 GetTokenAddress_Limit(),
                 GetTradeType_Limit(),
                 GetPrice_Limit(),
@@ -631,7 +620,7 @@ namespace GannyBot
             //response.Token = token;
             //response.Order = limitOrder;
 
-            AddItemInLimitView(
+            LimitListView_AddItem(
                 response.Order.ID.ToString(),
                 response.Token.Symbol,
                 response.Token.Address,
@@ -642,7 +631,7 @@ namespace GannyBot
                 response.Order.Date.ToString()
                 );
 
-            groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
+            //groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
         }
 
         // Cancel Button
@@ -654,10 +643,10 @@ namespace GannyBot
             int ID = Convert.ToInt32(listView2.SelectedItems[0].SubItems[0].Text);
             string address = listView2.SelectedItems[0].SubItems[2].Text;
 
-            Bot.DeleteLimitOrder(ID, address);
-            ListView2_RemoveItem(ID.ToString());
+            uiManager.limitManager.DeleteLimitOrder(ID, address);
+            LimitListView_RemoveItem(ID.ToString());
 
-            groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
+            // groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
         }
 
         /**********************************************************/
@@ -673,7 +662,6 @@ namespace GannyBot
         {
 
         }
-
         private void textBox8_TextChanged(object sender, EventArgs e)
         {
 
@@ -697,6 +685,55 @@ namespace GannyBot
                 return true;
             }
             return false;
+        }
+
+        private void groupBox3_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        string textBox3_PreviousInput = "";
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            //ControlDecimalsText(textBox3.Text);
+        }
+
+        void ControlDecimalsText(string text)
+        {
+            text = text.Replace(".", ",");
+
+            int commaCount = text.Split(',').Length - 1;
+            Console.WriteLine("\ncommaCount: " + commaCount.ToString());
+
+            foreach (char c in text)
+            {
+                if (c < '0' || c > '9')
+                {
+                    if (c == ',')
+                    {
+                        if(commaCount > 1)
+                        {
+                            text = text.Replace(c.ToString(), "");
+                            commaCount--;
+                        }
+                        
+                    }
+                    else if(c == ',' && commaCount == 1)
+                    {
+                        continue;
+                    }
+                    text = text.Replace(c.ToString(), "");
+                }
+            }
+
+            Console.WriteLine(text);
+
+            //Console.WriteLine();
+
+            Regex regex = new Regex("^-{0,1}\\d+\\,{0,1}\\d*$");
+            Match m = regex.Match(text);
+
+
         }
     }
 }
