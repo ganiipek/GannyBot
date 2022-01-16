@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GannyBot.Chain
 {
-    enum router
+    internal enum router
     {
         PancakeSwapV2
     }

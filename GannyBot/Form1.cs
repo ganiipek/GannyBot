@@ -21,13 +21,21 @@ namespace GannyBot
     public partial class Form1 : Form
     {
         UI.UIManager uiManager;
+
+        ToolTip toolTip1 = new ToolTip();
+
+        decimal textBox4_LastValue = 10;
+        decimal textBox8_LastValue = 10;
+        int textBox13_LastValue = 5;
+        int textBox14_LastValue = 5;
+
         public Form1()
         {
             Form2._form1 = this;
             LoginForm._form1 = this;
 
             InitializeComponent();
-
+            
             Chain.Web3Manager._form1 = this;
             UI.LimitManager._form1 = this;
             UI.MarketManager._form1 = this;
@@ -35,30 +43,48 @@ namespace GannyBot
             UI.UIManager._form1 = this;
 
             uiManager = new UI.UIManager();
-            
-            
+
             comboBox1.SelectedIndex = 0;
             comboBox3.SelectedIndex = 0;
             comboBox4.SelectedIndex = 0;
             comboBox5.SelectedIndex = 0;
 
+            textBox13.Enabled = false;
+            textBox14.Enabled = false;
+
+            tabControl1.TabPages["mainTab_presale"].Enabled = false;
+
             label40.Text = Chain.ChainManager.Token().Symbol + ":";
 
+            
+
+            Limit_SetGroupBoxText();
             SetToolTip();
         }
 
         void SetToolTip()
         {
-            ToolTip toolTip1 = new ToolTip();
+            
 
             // Set up the delays for the ToolTip.
             toolTip1.AutoPopDelay = 5000;
-            toolTip1.InitialDelay = 1000;
-            toolTip1.ReshowDelay = 500;
+            toolTip1.InitialDelay = 100;
+            toolTip1.ReshowDelay = 100;
             // Force the ToolTip text to be displayed whether or not the form is active.
             toolTip1.ShowAlways = true;
 
-            toolTip1.SetToolTip(this.label70, "Deneme");
+            toolTip1.SetToolTip(this.label13, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label14, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label16, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label18, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label70, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label71, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label86, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label84, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label82, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label80, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label77, "Kopyalamak için çift tıklayın.");
+            toolTip1.SetToolTip(this.label76, "Kopyalamak için çift tıklayın.");
         }
 
 
@@ -98,6 +124,7 @@ namespace GannyBot
                 label33.Text = "-";
             }
         }
+
         /**********************************************************/
         /************************* WALLET *************************/
         /**********************************************************/
@@ -195,6 +222,73 @@ namespace GannyBot
         /**********************************************************/
         /************************* MARKET *************************/
         /**********************************************************/
+        private void textBox4_Leave(object sender, EventArgs e)
+        {
+            if (Regex.IsMatch(textBox4.Text.Replace(".", ","), "^-{0,1}\\d+\\,{0,1}\\d*$"))
+            {
+                decimal slippage = Convert.ToDecimal(textBox4.Text.Replace(".", ","));
+
+                if (slippage >= 0 && slippage <= 100)
+                {
+                    textBox4_LastValue = slippage;
+                }
+            }
+            textBox4.Text = textBox4_LastValue.ToString();
+        }
+
+        private void textBox14_Leave(object sender, EventArgs e)
+        {
+            if (Regex.IsMatch(textBox14.Text, "^[0-9]+$"))
+            {
+                int numbers = Convert.ToInt32(textBox14.Text);
+
+                if (numbers < 5)
+                {
+                    textBox14.Text = textBox14_LastValue.ToString();
+                    return;
+                }
+                textBox14_LastValue = numbers;
+            }
+            else
+            {
+                textBox14.Text = textBox14_LastValue.ToString();
+            }
+        }
+
+        private void comboBox4_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (comboBox4.SelectedItem.ToString())
+            {
+                case "Standard":
+                    textBox13.Enabled = false;
+                    textBox13.Text = "5";
+                    break;
+                case "Fast":
+                    textBox13.Enabled = false;
+                    textBox13.Text = "6";
+                    break;
+                case "Instant":
+                    textBox13.Enabled = false;
+                    textBox13.Text = "7";
+                    break;
+                case "Rapid":
+                    textBox13.Enabled = false;
+                    textBox13.Text = "10";
+                    break;
+                case "Custom":
+                    textBox13.Enabled = true;
+                    break;
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (listView1.SelectedItems.Count == 0)
+                return;
+
+            textBox2.Text = listView1.SelectedItems[0].SubItems[2].Text;
+        }
+
         public string Market_GetMarketType()
         {
             return comboBox5.SelectedItem.ToString();
@@ -217,26 +311,7 @@ namespace GannyBot
 
         private int Market_GetGasPrice()
         {
-            int gasPrice = 5;
-            switch (comboBox1.SelectedItem.ToString())
-            {
-                case "Standard (5 GWEI)":
-                    gasPrice = 5;
-                    break;
-                case "Fast (6 GWEI)":
-                    gasPrice = 6;
-                    break;
-                case "Instant (7 GWEI)":
-                    gasPrice = 7;
-                    break;
-                case "Rapid (10 GWEI)":
-                    gasPrice = 10;
-                    break;
-                case "TestNet (15 GWEI)":
-                    gasPrice = 15;
-                    break;
-            }
-            return gasPrice;
+            return Convert.ToInt32(textBox14.Text);
         }
 
         void Market_ClearTransactionInformation()
@@ -310,12 +385,32 @@ namespace GannyBot
             label14.ForeColor = Color.Red;
         }
 
+        public void Market_ShowTransactionProcess(int type)
+        {
+            if(type == 0)
+            {
+                label56.Text = "Sistem";
+                linkLabel1.Text = "Sözleşme Hazırlanıyor...";
+
+                label56.ForeColor = Color.Blue;
+            }
+            else if (type == 0)
+            {
+                label56.Text = "Bekleyin";
+                linkLabel1.Text = "Sözleşme Gönderildi. Ağdan cevap bekleniyor...";
+
+                label56.ForeColor = Color.Orange;
+            }
+        }
+
         private void Market_ShowTransactionInformation(dynamic response)
         {
             if (response.Error)
             {
                 label56.Text = "Error";
                 linkLabel1.Text = response.Message;
+
+                label56.ForeColor = Color.Red;
             }
             else
             {
@@ -332,6 +427,8 @@ namespace GannyBot
                 label65.Text = transactionDetails.GasLimit;
                 label66.Text = transactionDetails.GasUsed;
                 label67.Text = transactionDetails.GasPrice + " Gwei";
+
+                label56.ForeColor = Color.DarkGreen;
             }
             
         }
@@ -342,16 +439,12 @@ namespace GannyBot
             button5.Enabled = false;
             Market_ClearTransactionInformation();
 
-            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
-                Chain.WalletManager.Address(),
-                Chain.ChainManager.Token().Address,
+            dynamic response = await uiManager.marketManager.BuyToken(
                 Market_GetTokenAddress(),
                 Market_GetInputValue(),
                 Market_GetSlippage(),
                 Market_GetGasPrice()
                 );
-
-            dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
             Market_ShowTransactionInformation(response);
             button5.Enabled = true;
@@ -364,16 +457,12 @@ namespace GannyBot
             button14.Enabled = false;
             Market_ClearTransactionInformation();
 
-            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
-                Chain.WalletManager.Address(),
+            dynamic response = await uiManager.marketManager.SellToken(
                 Market_GetTokenAddress(),
-                Chain.ChainManager.Token().Address,
                 Market_GetInputValue(),
                 Market_GetSlippage(),
                 Market_GetGasPrice()
                 );
-
-            dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
             Market_ShowTransactionInformation(response);
             button11.Enabled = true;
@@ -387,10 +476,14 @@ namespace GannyBot
             button14.Enabled = false;
             Market_ClearTransactionInformation();
 
+            Market_ShowTransactionProcess(type: 0);
+
             dynamic transactionReceipt = await Trade.TradeManager.Approve(
                 Market_GetTokenAddress(),
                 Market_GetInputValue() 
                 );
+
+            Market_ShowTransactionProcess(type: 1);
 
             dynamic response = await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
 
@@ -414,6 +507,78 @@ namespace GannyBot
         /**********************************************************/
         /************************** LIMIT *************************/
         /**********************************************************/
+        private void textBox8_Leave(object sender, EventArgs e)
+        {
+            if (Regex.IsMatch(textBox8.Text.Replace(".", ","), "^-{0,1}\\d+\\,{0,1}\\d*$"))
+            {
+                decimal slippage = Convert.ToDecimal(textBox8.Text.Replace(".", ","));
+
+                if (slippage >= 0 && slippage <= 100)
+                {
+                    textBox8_LastValue = slippage;
+                }
+            }
+            textBox8.Text = textBox8_LastValue.ToString();
+        }
+
+        private void textBox13_Leave(object sender, EventArgs e)
+        {
+            if (Regex.IsMatch(textBox13.Text, "^[0-9]+$"))
+            {
+                int numbers = Convert.ToInt32(textBox13.Text);
+
+                if (numbers < 5)
+                {
+                    textBox13.Text = textBox13_LastValue.ToString();
+                    return;
+                }
+                textBox13_LastValue = numbers;
+            }
+            else
+            {
+                textBox13.Text = textBox13_LastValue.ToString();
+            }
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (comboBox1.SelectedItem.ToString())
+            {
+                case "Standard":
+                    textBox14.Enabled = false;
+                    textBox14.Text = "5";
+                    break;
+                case "Fast":
+                    textBox14.Enabled = false;
+                    textBox14.Text = "6";
+                    break;
+                case "Instant":
+                    textBox14.Enabled = false;
+                    textBox14.Text = "7";
+                    break;
+                case "Rapid":
+                    textBox14.Enabled = false;
+                    textBox14.Text = "10";
+                    break;
+                case "Custom":
+                    textBox14.Enabled = true;
+                    break;
+            }
+        }
+
+        private void button15_Click(object sender, EventArgs e)
+        {
+            if (listView1.SelectedItems.Count == 0)
+                return;
+
+            textBox11.Text = listView1.SelectedItems[0].SubItems[2].Text;
+        }
+
+        public void Limit_SetGroupBoxText()
+        {
+            groupBox6.Text = "Active Limit Order (" + uiManager.limitManager.GetLimitOrderCount().ToString() + "/" + uiManager.limitManager.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + uiManager.limitManager.GetUniqueTokenLimitCount() + "/" + uiManager.limitManager.GetMaxUniqueTokenLimitCount() + ")";
+        }
+
         void textBox11_TextChanged(object sender, EventArgs e)
         {
             if (textBox11.Text.Length > 30)
@@ -468,33 +633,18 @@ namespace GannyBot
             return Convert.ToDecimal(textBox9.Text.Replace(".", ","));
         }
 
-        private int GetSlippage_Limit()
+        public decimal GetSlippage_Limit()
         {
-            return Convert.ToInt32(textBox8.Text);
+            return Convert.ToDecimal(textBox8.Text.Replace(".", ","));
         }
 
         private int GetGasPrice_Limit()
         {
-            int gasPrice = 5;
-            switch (comboBox4.SelectedItem.ToString())
+            if(Regex.IsMatch(textBox13.Text, "[^0-9]"))
             {
-                case "Standard (5 GWEI)":
-                    gasPrice = 5;
-                    break;
-                case "Fast (6 GWEI)":
-                    gasPrice = 6;
-                    break;
-                case "Instant (7 GWEI)":
-                    gasPrice = 7;
-                    break;
-                case "Rapid (10 GWEI)":
-                    gasPrice = 10;
-                    break;
-                case "TestNet (15 GWEI)":
-                    gasPrice = 15;
-                    break;
+                return Convert.ToInt32(textBox13.Text);
             }
-            return gasPrice;
+            return 5;
         }
 
         private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
@@ -526,6 +676,7 @@ namespace GannyBot
             listViewItem.UseItemStyleForSubItems = false;
 
             listView2.Items.Add(listViewItem);
+            Limit_SetGroupBoxText();
         }
 
         public void LimitListView_RemoveItem(string id)
@@ -535,6 +686,7 @@ namespace GannyBot
                 if(itemRow.SubItems[0].Text == id)
                 {
                     itemRow.Remove();
+                    Limit_SetGroupBoxText();
                     break;
                 }
             }
@@ -558,7 +710,14 @@ namespace GannyBot
             {
                 if (itemRow.SubItems[0].Text == ID.ToString())
                 {
-                    itemRow.BackColor = background;
+                    itemRow.SubItems[0].BackColor = background;
+                    itemRow.SubItems[1].BackColor = background;
+                    itemRow.SubItems[2].BackColor = background;
+                    itemRow.SubItems[3].BackColor = background;
+                    itemRow.SubItems[4].BackColor = background;
+                    itemRow.SubItems[5].BackColor = background;
+                    itemRow.SubItems[6].BackColor = background;
+                    itemRow.SubItems[7].BackColor = background;
                 }
             }
         }
@@ -602,6 +761,21 @@ namespace GannyBot
         // Add Button
         private async void button17_Click(object sender, EventArgs e)
         {
+            dynamic checkResponse = await uiManager.limitManager.CheckLimitOrder(
+                GetTokenAddress_Limit(),
+                GetTradeType_Limit(),
+                GetPrice_Limit(),
+                GetQuantity_Limit(),
+                GetSlippage_Limit(),
+                GetGasPrice_Limit()
+                );
+
+            if (checkResponse.Error)
+            {
+                MessageBox.Show(checkResponse.Message);
+                return;
+            }
+
             dynamic response = await uiManager.limitManager.NewLimitOrder(
                 GetTokenAddress_Limit(),
                 GetTradeType_Limit(),
@@ -631,7 +805,7 @@ namespace GannyBot
                 response.Order.Date.ToString()
                 );
 
-            //groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
+            Limit_SetGroupBoxText();
         }
 
         // Cancel Button
@@ -645,8 +819,28 @@ namespace GannyBot
 
             uiManager.limitManager.DeleteLimitOrder(ID, address);
             LimitListView_RemoveItem(ID.ToString());
+        }
+        // Force Sell
+        private void button16_Click(object sender, EventArgs e)
+        {
+            if (listView2.SelectedItems.Count == 0)
+                return;
 
-            // groupBox6.Text = "Active Limit Order (" + Bot.GetLimitOrderCount().ToString() + "/" + Bot.GetMaxLimitOrderCount().ToString() + ") | Unique Token (" + Bot.GetUniqueTokenLimitCount() + "/" + Bot.GetMaxUniqueTokenLimitCount() + ")";
+            int ID = Convert.ToInt32(listView2.SelectedItems[0].SubItems[0].Text);
+            Trade.LimitOrder limitOrder = uiManager.limitManager.FindLimitOrderByID(ID);
+
+            uiManager.limitManager.LimitTrade(limitOrder);
+        }
+        // Force Buy
+        private void button13_Click(object sender, EventArgs e)
+        {
+            if (listView2.SelectedItems.Count == 0)
+                return;
+
+            int ID = Convert.ToInt32(listView2.SelectedItems[0].SubItems[0].Text);
+            Trade.LimitOrder limitOrder = uiManager.limitManager.FindLimitOrderByID(ID);
+
+            uiManager.limitManager.LimitTrade(limitOrder);
         }
 
         /**********************************************************/
@@ -662,15 +856,10 @@ namespace GannyBot
         {
 
         }
+
         private void textBox8_TextChanged(object sender, EventArgs e)
         {
 
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            //System.Diagnostics.Debug.WriteLine("Socket Connection: " + clientSocket.IsConnected().ToString());
-            
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -728,12 +917,96 @@ namespace GannyBot
 
             Console.WriteLine(text);
 
-            //Console.WriteLine();
-
             Regex regex = new Regex("^-{0,1}\\d+\\,{0,1}\\d*$");
             Match m = regex.Match(text);
-
-
         }
+
+        private void listView2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.listView2.SelectedItems.Count == 0)
+            { 
+                button13.Enabled = false;
+                button16.Enabled = false;
+                return;
+            }
+
+            switch (listView2.SelectedItems[0].SubItems[5].Text)
+            {
+                case "Buy":
+                    button13.Enabled = true;
+                    button16.Enabled = false;
+                    break;
+
+                case "Sell":
+                    button13.Enabled = false;
+                    button16.Enabled = true;
+                    break;
+            }
+        }
+
+        /**********************************************************/
+        /************************** COPY **************************/
+        /**********************************************************/
+        private void label13_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label13.Text);
+        }
+
+        private void label14_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label14.Text);
+        }
+
+        private void label16_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label16.Text);
+        }
+
+        private void label18_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label18.Text);
+        }
+
+        private void label70_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label70.Text);
+        }
+
+        private void label71_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label71.Text);
+        }
+
+        private void label86_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label86.Text);
+        }
+
+        private void label84_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label84.Text);
+        }
+
+        private void label82_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label82.Text);
+        }
+
+        private void label80_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label80.Text);
+        }
+
+        private void label77_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label77.Text);
+        }
+
+        private void label76_DoubleClick(object sender, EventArgs e)
+        {
+            Clipboard.SetText(label76.Text);
+        }
+
+        
     }
 }

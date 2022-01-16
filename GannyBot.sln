@@ -17,7 +17,7 @@ Global
 		{D4F1FEE5-CA25-4C05-BDDB-21864A01056B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4F1FEE5-CA25-4C05-BDDB-21864A01056B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4F1FEE5-CA25-4C05-BDDB-21864A01056B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D02257A-D39C-4E2F-AF1D-5441A6CD4AF5}.Debug|Any CPU.ActiveCfg = Debug
+		{3D02257A-D39C-4E2F-AF1D-5441A6CD4AF5}.Debug|Any CPU.ActiveCfg = Release
 		{3D02257A-D39C-4E2F-AF1D-5441A6CD4AF5}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution

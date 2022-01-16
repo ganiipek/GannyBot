@@ -77,6 +77,7 @@
             this.label48 = new System.Windows.Forms.Label();
             this.label47 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.textBox14 = new System.Windows.Forms.TextBox();
             this.textBox12 = new System.Windows.Forms.TextBox();
             this.label88 = new System.Windows.Forms.Label();
             this.label71 = new System.Windows.Forms.Label();
@@ -126,6 +127,7 @@
             this.label26 = new System.Windows.Forms.Label();
             this.label25 = new System.Windows.Forms.Label();
             this.mainTab_limit = new System.Windows.Forms.TabPage();
+            this.textBox13 = new System.Windows.Forms.TextBox();
             this.label76 = new System.Windows.Forms.Label();
             this.label77 = new System.Windows.Forms.Label();
             this.label78 = new System.Windows.Forms.Label();
@@ -207,6 +209,7 @@
             this.listView1.FullRowSelect = true;
             this.listView1.HideSelection = false;
             this.listView1.Location = new System.Drawing.Point(12, 57);
+            this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(290, 328);
             this.listView1.TabIndex = 1;
@@ -222,7 +225,7 @@
             // columnHeader2
             // 
             this.columnHeader2.Text = "Symbol";
-            this.columnHeader2.Width = 100;
+            this.columnHeader2.Width = 90;
             // 
             // columnHeader3
             // 
@@ -665,6 +668,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.textBox14);
             this.groupBox1.Controls.Add(this.textBox12);
             this.groupBox1.Controls.Add(this.label88);
             this.groupBox1.Controls.Add(this.label71);
@@ -699,6 +703,14 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Trade On PancakeSwap";
             // 
+            // textBox14
+            // 
+            this.textBox14.Location = new System.Drawing.Point(149, 151);
+            this.textBox14.Name = "textBox14";
+            this.textBox14.Size = new System.Drawing.Size(36, 20);
+            this.textBox14.TabIndex = 28;
+            this.textBox14.Leave += new System.EventHandler(this.textBox14_Leave);
+            // 
             // textBox12
             // 
             this.textBox12.Enabled = false;
@@ -725,6 +737,7 @@
             this.label71.Size = new System.Drawing.Size(10, 13);
             this.label71.TabIndex = 25;
             this.label71.Text = "-";
+            this.label71.DoubleClick += new System.EventHandler(this.label71_DoubleClick);
             // 
             // label70
             // 
@@ -734,6 +747,7 @@
             this.label70.Size = new System.Drawing.Size(10, 13);
             this.label70.TabIndex = 24;
             this.label70.Text = "-";
+            this.label70.DoubleClick += new System.EventHandler(this.label70_DoubleClick);
             // 
             // label69
             // 
@@ -819,6 +833,7 @@
             this.label18.Size = new System.Drawing.Size(10, 13);
             this.label18.TabIndex = 16;
             this.label18.Text = "-";
+            this.label18.DoubleClick += new System.EventHandler(this.label18_DoubleClick);
             // 
             // label19
             // 
@@ -837,6 +852,7 @@
             this.label16.Size = new System.Drawing.Size(10, 13);
             this.label16.TabIndex = 14;
             this.label16.Text = "-";
+            this.label16.DoubleClick += new System.EventHandler(this.label16_DoubleClick);
             // 
             // label17
             // 
@@ -855,6 +871,7 @@
             this.label14.Size = new System.Drawing.Size(10, 13);
             this.label14.TabIndex = 12;
             this.label14.Text = "-";
+            this.label14.DoubleClick += new System.EventHandler(this.label14_DoubleClick);
             // 
             // label15
             // 
@@ -873,6 +890,7 @@
             this.label13.Size = new System.Drawing.Size(10, 13);
             this.label13.TabIndex = 10;
             this.label13.Text = "-";
+            this.label13.DoubleClick += new System.EventHandler(this.label13_DoubleClick);
             // 
             // label12
             // 
@@ -888,15 +906,16 @@
             this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBox1.FormattingEnabled = true;
             this.comboBox1.Items.AddRange(new object[] {
-            "Standard (5 GWEI)",
-            "Fast (6 GWEI)",
-            "Instant (7 GWEI)",
-            "Rapid (10 GWEI)",
-            "TestNet (15 GWEI)"});
-            this.comboBox1.Location = new System.Drawing.Point(149, 150);
+            "Standard",
+            "Fast",
+            "Instant",
+            "Rapid",
+            "Custom"});
+            this.comboBox1.Location = new System.Drawing.Point(201, 150);
             this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(169, 21);
+            this.comboBox1.Size = new System.Drawing.Size(117, 21);
             this.comboBox1.TabIndex = 8;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // label11
             // 
@@ -914,6 +933,7 @@
             this.textBox4.Size = new System.Drawing.Size(196, 20);
             this.textBox4.TabIndex = 6;
             this.textBox4.Text = "1";
+            this.textBox4.Leave += new System.EventHandler(this.textBox4_Leave);
             // 
             // label10
             // 
@@ -1174,6 +1194,7 @@
             // 
             // mainTab_limit
             // 
+            this.mainTab_limit.Controls.Add(this.textBox13);
             this.mainTab_limit.Controls.Add(this.label76);
             this.mainTab_limit.Controls.Add(this.label77);
             this.mainTab_limit.Controls.Add(this.label78);
@@ -1212,6 +1233,14 @@
             this.mainTab_limit.Text = "Limit";
             this.mainTab_limit.UseVisualStyleBackColor = true;
             // 
+            // textBox13
+            // 
+            this.textBox13.Location = new System.Drawing.Point(119, 140);
+            this.textBox13.Name = "textBox13";
+            this.textBox13.Size = new System.Drawing.Size(40, 20);
+            this.textBox13.TabIndex = 47;
+            this.textBox13.Leave += new System.EventHandler(this.textBox13_Leave);
+            // 
             // label76
             // 
             this.label76.AutoSize = true;
@@ -1220,6 +1249,7 @@
             this.label76.Size = new System.Drawing.Size(10, 13);
             this.label76.TabIndex = 46;
             this.label76.Text = "-";
+            this.label76.DoubleClick += new System.EventHandler(this.label76_DoubleClick);
             // 
             // label77
             // 
@@ -1229,6 +1259,7 @@
             this.label77.Size = new System.Drawing.Size(10, 13);
             this.label77.TabIndex = 45;
             this.label77.Text = "-";
+            this.label77.DoubleClick += new System.EventHandler(this.label77_DoubleClick);
             // 
             // label78
             // 
@@ -1256,6 +1287,7 @@
             this.label80.Size = new System.Drawing.Size(10, 13);
             this.label80.TabIndex = 42;
             this.label80.Text = "-";
+            this.label80.DoubleClick += new System.EventHandler(this.label80_DoubleClick);
             // 
             // label81
             // 
@@ -1274,6 +1306,7 @@
             this.label82.Size = new System.Drawing.Size(10, 13);
             this.label82.TabIndex = 40;
             this.label82.Text = "-";
+            this.label82.DoubleClick += new System.EventHandler(this.label82_DoubleClick);
             // 
             // label83
             // 
@@ -1292,6 +1325,7 @@
             this.label84.Size = new System.Drawing.Size(10, 13);
             this.label84.TabIndex = 38;
             this.label84.Text = "-";
+            this.label84.DoubleClick += new System.EventHandler(this.label84_DoubleClick);
             // 
             // label85
             // 
@@ -1310,6 +1344,7 @@
             this.label86.Size = new System.Drawing.Size(10, 13);
             this.label86.TabIndex = 36;
             this.label86.Text = "-";
+            this.label86.DoubleClick += new System.EventHandler(this.label86_DoubleClick);
             // 
             // label87
             // 
@@ -1368,15 +1403,16 @@
             this.comboBox4.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBox4.FormattingEnabled = true;
             this.comboBox4.Items.AddRange(new object[] {
-            "Standard (5 GWEI)",
-            "Fast (6 GWEI)",
-            "Instant (7 GWEI)",
-            "Rapid (10 GWEI)",
-            "TestNet (15 GWEI)"});
-            this.comboBox4.Location = new System.Drawing.Point(120, 140);
+            "Standard",
+            "Fast",
+            "Instant",
+            "Rapid",
+            "Custom"});
+            this.comboBox4.Location = new System.Drawing.Point(165, 140);
             this.comboBox4.Name = "comboBox4";
-            this.comboBox4.Size = new System.Drawing.Size(108, 21);
+            this.comboBox4.Size = new System.Drawing.Size(109, 21);
             this.comboBox4.TabIndex = 30;
+            this.comboBox4.SelectedIndexChanged += new System.EventHandler(this.comboBox4_SelectedIndexChanged);
             // 
             // label59
             // 
@@ -1394,6 +1430,7 @@
             this.textBox8.Size = new System.Drawing.Size(127, 20);
             this.textBox8.TabIndex = 28;
             this.textBox8.Text = "1";
+            this.textBox8.Leave += new System.EventHandler(this.textBox8_Leave);
             // 
             // label60
             // 
@@ -1442,21 +1479,25 @@
             // 
             // button16
             // 
+            this.button16.Enabled = false;
             this.button16.Location = new System.Drawing.Point(134, 355);
             this.button16.Name = "button16";
             this.button16.Size = new System.Drawing.Size(110, 23);
             this.button16.TabIndex = 23;
             this.button16.Text = "Force Sell";
             this.button16.UseVisualStyleBackColor = true;
+            this.button16.Click += new System.EventHandler(this.button16_Click);
             // 
             // button13
             // 
+            this.button13.Enabled = false;
             this.button13.Location = new System.Drawing.Point(6, 355);
             this.button13.Name = "button13";
             this.button13.Size = new System.Drawing.Size(110, 23);
             this.button13.TabIndex = 22;
             this.button13.Text = "Force Buy";
             this.button13.UseVisualStyleBackColor = true;
+            this.button13.Click += new System.EventHandler(this.button13_Click);
             // 
             // groupBox6
             // 
@@ -1481,11 +1522,13 @@
             this.listView2.FullRowSelect = true;
             this.listView2.HideSelection = false;
             this.listView2.Location = new System.Drawing.Point(6, 19);
+            this.listView2.MultiSelect = false;
             this.listView2.Name = "listView2";
             this.listView2.Size = new System.Drawing.Size(478, 157);
             this.listView2.TabIndex = 10;
             this.listView2.UseCompatibleStateImageBehavior = false;
             this.listView2.View = System.Windows.Forms.View.Details;
+            this.listView2.SelectedIndexChanged += new System.EventHandler(this.listView2_SelectedIndexChanged);
             // 
             // ID
             // 
@@ -1548,7 +1591,6 @@
             this.textBox11.Name = "textBox11";
             this.textBox11.Size = new System.Drawing.Size(294, 20);
             this.textBox11.TabIndex = 1;
-            this.textBox11.Text = "0x93bb13e90678ccd8bbab07d1daef15086746dc9b";
             this.textBox11.TextChanged += new System.EventHandler(this.textBox11_TextChanged);
             // 
             // button15
@@ -1559,6 +1601,7 @@
             this.button15.TabIndex = 0;
             this.button15.Text = ">";
             this.button15.UseVisualStyleBackColor = true;
+            this.button15.Click += new System.EventHandler(this.button15_Click);
             // 
             // label3
             // 
@@ -1857,6 +1900,8 @@
         private System.Windows.Forms.Label label87;
         private System.Windows.Forms.TextBox textBox12;
         private System.Windows.Forms.Label label88;
+        private System.Windows.Forms.TextBox textBox13;
+        private System.Windows.Forms.TextBox textBox14;
     }
 }
 

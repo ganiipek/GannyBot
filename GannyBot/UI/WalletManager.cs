@@ -13,7 +13,7 @@ namespace GannyBot.UI
     {
         public static Form1 _form1;
 
-        List<Chain.Token> walletTokens = new List<Chain.Token>();
+        List<Trade.OrderToken> walletTokens = new List<Trade.OrderToken>();
         string wallet_LastSelectedTokenAddress = null;
 
         System.Threading.Timer timer_wallet;
@@ -31,7 +31,7 @@ namespace GannyBot.UI
 
             foreach (var dbToken in dbWalletTokens)
             {
-                Chain.Token token = new Chain.Token
+                Trade.OrderToken token = new Trade.OrderToken
                 {
                     Name = dbToken.name.ToString(),
                     Symbol = dbToken.symbol.ToString(),
@@ -128,7 +128,7 @@ namespace GannyBot.UI
                     }
                 }
             }
-            Thread.Sleep(1000);
+            //Thread.Sleep(1000);
             timer_wallet.Change(1000, Timeout.Infinite);
         }
     }

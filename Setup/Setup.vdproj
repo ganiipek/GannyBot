@@ -1684,6 +1684,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
     }
@@ -3825,9 +3833,9 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:GannyBot"
-        "ProductCode" = "8:{00F19FA5-6866-4F74-A7AB-E012B8500572}"
-        "PackageCode" = "8:{70B79D46-84E8-4C06-86CD-5768259A6007}"
-        "UpgradeCode" = "8:{1506F8D4-A9C5-4CCA-92E2-4056CACA9AD2}"
+        "ProductCode" = "8:{39367C63-F269-440C-A3D6-3F16DC248D4A}"
+        "PackageCode" = "8:{8E725B91-A562-4126-9FA6-D724800561FE}"
+        "UpgradeCode" = "8:{4DBDB1EB-FDE5-464C-A9EB-32BDB9BA520D}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
@@ -3841,7 +3849,7 @@
         "Subject" = "8:"
         "ARPCONTACT" = "8:gani"
         "Keywords" = "8:"
-        "ARPCOMMENTS" = "8:"
+        "ARPCOMMENTS" = "8:Gannybot"
         "ARPURLINFOABOUT" = "8:"
         "ARPPRODUCTICON" = "8:"
         "ARPIconIndex" = "3:0"

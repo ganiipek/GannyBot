@@ -16,10 +16,13 @@ namespace GannyBot.UI
     {
         public static Form1 _form1;
         public static bool LOGIN = false;
+        int loginTryLimit = 3;
 
         LoginForm loginForm = new LoginForm();
 
         System.Threading.Timer timer_WETHPrice;
+        System.Threading.Timer timer_Socket;
+
         public static ClientSocket clientSocket;
 
         
@@ -33,12 +36,11 @@ namespace GannyBot.UI
         public UIManager()
         {
             ConnectSocket();
+            Login();
 
             if (!LOGIN) _form1.Exit();
 
             Chain.ChainManager.Select(Chain.chain.binance_smart_chain);
-
-            Console.WriteLine(database.Exist());
             
             dynamic accounts = database.GetAccount();
 
@@ -46,8 +48,6 @@ namespace GannyBot.UI
             {
                 string KeyString = Security.CryptManager.GenerateAPassKey("SS2131asdajn1!^!'ÇDASD!^1231231231");
                 string DecryptedPassword = Security.CryptManager.Decrypt(accounts.First.key.ToString(), KeyString);
-
-                Console.WriteLine(DecryptedPassword);
 
                 Chain.WalletManager.Set(
                     accounts.First.address.ToString(),
@@ -66,28 +66,24 @@ namespace GannyBot.UI
 
             
             timer_WETHPrice = new System.Threading.Timer(_ => Timer_WETHPrice(), null, 0, Timeout.Infinite);
+            timer_Socket = new System.Threading.Timer(_ => Timer_Socket(), null, 5000, Timeout.Infinite);
         }
 
- 
-        //void Timer_Socket()
-        //{
-        //    System.Diagnostics.Debug.WriteLine("Socket Connection :" + clientSocket.IsConnected().ToString());
-        //    if (!clientSocket.IsConnected())
-        //    {
-        //        clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
-        //        clientSocket.Start();
-        //    }
-        //    timer_Socket.Change(5000, Timeout.Infinite);
-        //}
-        void ConnectSocket()
+        bool ConnectSocket()
         {
             int port = 3131;
+            Console.WriteLine("-----------------------------");
             Console.WriteLine(string.Format("Client Başlatıldı. Port: {0}", port));
             Console.WriteLine("-----------------------------");
 
             clientSocket = new ClientSocket(new IPEndPoint(IPAddress.Parse("51.81.155.12"), 3131));
 
-            if (clientSocket.Start())
+            return clientSocket.Start();
+        }
+
+        void Login()
+        {
+            if (clientSocket.IsConnected())
             {
                 loginForm.ShowDialog();
             }
@@ -96,6 +92,33 @@ namespace GannyBot.UI
                 MessageBox.Show("Sunucuya bağlanılmıyor");
                 _form1.Exit();
             }
+        }
+
+        void Timer_Socket()
+        {
+            if (!clientSocket.IsConnected())
+            {
+                if(loginTryLimit == 0)
+                {
+                    _form1.Exit();
+                }
+
+                Console.WriteLine("Socket Connection: " + clientSocket.IsConnected().ToString());
+                for (int i = 5; i > 0; i--)
+                {
+                    Console.WriteLine("Remaining to try again: " + i.ToString() + "s");
+                    Thread.Sleep(1000);
+                }
+
+                if (ConnectSocket())
+                {
+                    dynamic login = Security.LoginManager.Login(Security.User.Email, Security.User.Password);
+                    if(login.error) _form1.Exit();
+                    loginTryLimit = 3;
+                }
+                else loginTryLimit--;
+            }
+            timer_Socket.Change(5000, Timeout.Infinite);
         }
 
         async Task<BigDecimal> GetWETHPrice_Router()
@@ -150,5 +173,6 @@ namespace GannyBot.UI
             }
             timer_WETHPrice.Change(5000, Timeout.Infinite);
         }
+
     }
 }

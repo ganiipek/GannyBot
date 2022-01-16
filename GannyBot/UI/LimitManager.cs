@@ -127,6 +127,34 @@ namespace GannyBot.UI
             _form1.LimitListView_UpdateTokenColor(limitOrder.ID, background);
         }
 
+        public async Task<dynamic> CheckLimitOrder(string tokenAddress, string type, BigDecimal price, BigDecimal quantity, decimal slippage, int gasPrice)
+        {
+            dynamic response = new ExpandoObject();
+            if (type == "Buy")
+            {
+                response = await Trade.TradeManager.CheckTradeInput(
+                    Chain.WalletManager.Address(),
+                    Chain.ChainManager.Token().Address,
+                    tokenAddress,
+                    quantity,
+                    slippage,
+                    gasPrice
+                );
+            }
+            else if (type == "Sell")
+            {
+                response = await Trade.TradeManager.CheckTradeInput(
+                    Chain.WalletManager.Address(),
+                    tokenAddress,
+                    Chain.ChainManager.Token().Address,
+                    quantity,
+                    slippage,
+                    gasPrice
+                );
+            }
+            return response;
+        }
+
         public async Task<dynamic> NewLimitOrder(string tokenAddress, string type, BigDecimal price, BigDecimal quantity, decimal slippage, int gasPrice)
         {
             dynamic response = new ExpandoObject();
@@ -145,8 +173,11 @@ namespace GannyBot.UI
                 return response;
             }
 
-            Trade.OrderToken token = null;
+            dynamic checkOrder = await CheckLimitOrder(tokenAddress, type, price, quantity, slippage, gasPrice);
 
+            if (checkOrder.Error) return checkOrder;
+
+            Trade.OrderToken token = null;
 
             if (!limitTokens.Exists(x => x.Address == tokenAddress))
             {
@@ -226,6 +257,8 @@ namespace GannyBot.UI
                     }
                 }
             }
+
+            _form1.Limit_SetGroupBoxText();
         }
 
         void DeleteAllLimitOrder()
@@ -236,7 +269,19 @@ namespace GannyBot.UI
             }
         }
 
-        async Task LimitTrade(Trade.LimitOrder limitOrder, BigDecimal tokenPrice)
+        public Trade.LimitOrder FindLimitOrderByID(int id)
+        {
+            foreach (Trade.LimitOrder limitOrder in limitOrders.orders.ToList())
+            {
+                if(limitOrder.ID == id)
+                {
+                    return limitOrder;
+                }
+            }
+            return null;
+        }
+
+        public async Task LimitTrade(Trade.LimitOrder limitOrder)
         {
             if (limitOrder.Type == "Buy")
             {
@@ -257,7 +302,7 @@ namespace GannyBot.UI
                 {
                     DeleteLimitOrder(limitOrder.ID, Chain.WalletManager.Address());
                     System.Diagnostics.Debug.WriteLine("\n- BUY | " + limitOrder.Symbol);
-                    System.Diagnostics.Debug.WriteLine("- Buy Price: " + tokenPrice.ToString() + " | Emir: " + limitOrder.Price.ToString());
+                    System.Diagnostics.Debug.WriteLine("- Buy Price: " + limitOrder.Price.ToString() + " | Emir: " + limitOrder.Price.ToString());
                 }
                 else
                 {
@@ -313,7 +358,7 @@ namespace GannyBot.UI
                 {
                     DeleteLimitOrder(limitOrder.ID, Chain.WalletManager.Address());
                     System.Diagnostics.Debug.WriteLine("\n- SELL | " + limitOrder.Symbol);
-                    System.Diagnostics.Debug.WriteLine("- Sell Price: " + tokenPrice.ToString() + " | Emir: " + limitOrder.Price.ToString());
+                    System.Diagnostics.Debug.WriteLine("- Sell Price: " + limitOrder.Price.ToString() + " | Emir: " + limitOrder.Price.ToString());
                 }
                 else
                 {
@@ -352,15 +397,15 @@ namespace GannyBot.UI
                             {
                                 System.Diagnostics.Debug.WriteLine("-------- Worker Buy");
 
-                                LimitTrade(limitOrder, tokenPrice);
+                                LimitTrade(limitOrder);
                             }
                             else if (limitOrder.Type == "Sell" && limitOrder.Price <= tokenPrice)
                             {
-                                if (limitToken.Balance > 0)
+                                if (limitToken.Balance >= limitOrder.Quantity)
                                 {
                                     System.Diagnostics.Debug.WriteLine("-------- Worker Sell");
 
-                                    LimitTrade(limitOrder, tokenPrice);
+                                    LimitTrade(limitOrder);
                                 }
                             }
                         }

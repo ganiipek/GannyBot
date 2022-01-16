@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GannyBot.Chain
 {
-    enum chain
+    internal enum chain
     {
         binance_smart_chain,
         binance_smart_chain_test

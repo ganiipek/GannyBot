@@ -36,10 +36,61 @@ namespace GannyBot.UI
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("MarketManager (AddToken): " + ex.Message);
+                    Console.WriteLine("UI.MarketManager (AddToken): " + ex.Message);
                     _form1.Market_ShowError("Tekrar dene");
                 }
             }
+        }
+
+        public async void UpdateApprove(string tokenAddress)
+        {
+            if (marketTokenInput.Address == tokenAddress)
+            {
+                try
+                {
+                    marketTokenInput.Approved = await Chain.TokenManager.CheckApprove(Chain.WalletManager.Address(), tokenAddress, await Chain.TokenManager.GetAbi(Chain.WalletManager.Address()));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("UI.MarketManager (UpdateApprove): " + ex.Message);
+                }
+            }
+        }
+
+        public async Task<dynamic> BuyToken(string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        {
+            _form1.Market_ShowTransactionProcess(type: 0);
+
+            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
+                Chain.WalletManager.Address(),
+                Chain.ChainManager.Token().Address,
+                tokenAddress,
+                quantity,
+                slippage,
+                gasPrice
+                );
+
+            _form1.Market_ShowTransactionProcess(type: 1);
+
+            return await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
+        }
+
+        public async Task<dynamic> SellToken(string tokenAddress, BigDecimal quantity, decimal slippage, int gasPrice)
+        {
+            _form1.Market_ShowTransactionProcess(type: 0);
+
+            dynamic transactionReceipt = await Trade.TradeManager.MakeTradeInput(
+                Chain.WalletManager.Address(),
+                tokenAddress,
+                Chain.ChainManager.Token().Address,
+                quantity,
+                slippage,
+                gasPrice
+                );
+
+            _form1.Market_ShowTransactionProcess(type: 1);
+
+            return await Trade.TradeManager.CheckTransactionStatus(transactionReceipt);
         }
 
         async void Timer_MarketTokenInfo()
@@ -83,7 +134,7 @@ namespace GannyBot.UI
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Timer_MarketTokenInfo: " + ex.Message);
+                        Console.WriteLine("UI.MarketManager (Timer_MarketTokenInfo): " + ex.Message);
                     }
                 }
             }

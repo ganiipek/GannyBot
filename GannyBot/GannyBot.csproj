@@ -55,17 +55,16 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>4F66D80B019A45185A428BE1F81A10B20AB02FE4</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>E232FE9679925F2A8983CDA4927221ACDB3FA608</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>
-    </ManifestKeyFile>
+    <ManifestKeyFile>GannyBot_1_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>GannyBot_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>GannyBot_1_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
@@ -279,6 +278,12 @@
     <Compile Include="Chain\TokenManager.cs" />
     <Compile Include="Chain\Wallet.cs" />
     <Compile Include="Chain\WalletManager.cs" />
+    <Compile Include="ConnectionLostForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConnectionLostForm.Designer.cs">
+      <DependentUpon>ConnectionLostForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Database\Database.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
     <Compile Include="Form1.cs">
@@ -299,7 +304,11 @@
     <Compile Include="LoginForm.Designer.cs">
       <DependentUpon>LoginForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="RESTAPI\GannyAPI.cs" />
     <Compile Include="Security\CryptManager.cs" />
+    <Compile Include="Security\LoginManager.cs" />
+    <Compile Include="Security\User.cs" />
+    <Compile Include="Socket\SSLSocket.cs" />
     <Compile Include="Trade\LimitOrder.cs" />
     <Compile Include="Trade\Order.cs" />
     <Compile Include="Program.cs" />
@@ -316,6 +325,9 @@
     <Compile Include="web3.cs" />
     <Compile Include="Chain\Web3Base.cs" />
     <Compile Include="Chain\Web3Manager.cs" />
+    <EmbeddedResource Include="ConnectionLostForm.resx">
+      <DependentUpon>ConnectionLostForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
@@ -335,6 +347,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <None Include="changelogs.md" />
+    <None Include="GannyBot_1_TemporaryKey.pfx" />
     <None Include="GannyBot_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Properties\app.manifest" />

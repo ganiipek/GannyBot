@@ -18,22 +18,9 @@ namespace GannyBot
         {
             InitializeComponent();
         }
-
-        private dynamic Login()
-        {
-            string mail = textBox1.Text;
-            string password = textBox2.Text;
-
-            UI.UIManager.clientSocket.SendData("{'type':'login', 'email':'" + mail + "', 'password':'" + password + "'}");
-            dynamic receiveData = UI.UIManager.clientSocket.ReceiveData();
-            string strData = receiveData.ToString();
-            System.Diagnostics.Debug.WriteLine(strData);
-
-            return receiveData;
-        }
         private void button1_Click(object sender, EventArgs e)
         {
-            dynamic login = Login();
+            dynamic login = Security.LoginManager.Login(textBox1.Text, textBox2.Text);
 
             if (login.error)
             {
@@ -43,6 +30,9 @@ namespace GannyBot
             else
             {
                 UI.UIManager.LOGIN = true;
+                Security.User.Email = textBox1.Text;
+                Security.User.Password = textBox2.Text;
+
                 this.Close();
             }
         }

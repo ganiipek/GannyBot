@@ -16,7 +16,7 @@ namespace GannyBot
 {
     public class ClientSocket
     {
-        Socket _Socket;
+        System.Net.Sockets.Socket _Socket;
         IPEndPoint _IPEndPoint;
         int _BufferSize = 256;
 
@@ -27,7 +27,7 @@ namespace GannyBot
         public ClientSocket(IPEndPoint ipEndPoint)
         {
             _IPEndPoint = ipEndPoint;
-            _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _Socket = new System.Net.Sockets.Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             
         }
         #endregion
@@ -41,7 +41,7 @@ namespace GannyBot
 
                 int size = sizeof(UInt32);
                 UInt32 on = 1;
-                UInt32 keepAliveInterval = 10000; //Send a packet once every 10 seconds.
+                UInt32 keepAliveInterval = 5000; //Send a packet once every 5 seconds.
                 UInt32 retryInterval = 1000; //If no response, resend every second.
                 byte[] inArray = new byte[size * 3];
                 Array.Copy(BitConverter.GetBytes(on), 0, inArray, 0, size);
@@ -55,7 +55,7 @@ namespace GannyBot
             {
                 string exception = CheckException(ex);
                 //Output of the inner exception data and reset of communication
-                System.Diagnostics.Debug.WriteLine(exception);
+                //System.Diagnostics.Debug.WriteLine(exception);
                 return false;
             }
         }
@@ -74,14 +74,24 @@ namespace GannyBot
 
         public bool IsConnected()
         {
-            if(SendData("{'type': 'ping'}")) return true;
-            return false;
+            try
+            {
+                SendData("{'type': 'ping'}");
+                ReceiveData();
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public bool SendData(string data)
         {
             try
             {
+                //Console.WriteLine(data);
                 using (var ms = new MemoryStream())
                 {
                     UTF8Encoding enc = new UTF8Encoding();
@@ -109,7 +119,8 @@ namespace GannyBot
             int bytesRec = _Socket.Receive(buff);
 
             string message = Encoding.UTF8.GetString(buff, 0, bytesRec);
-            System.Diagnostics.Debug.WriteLine(message);
+            //Console.WriteLine(message);
+
             dynamic parsedJson = JsonConvert.DeserializeObject<ExpandoObject>(message, new ExpandoObjectConverter());
 
             return parsedJson;
